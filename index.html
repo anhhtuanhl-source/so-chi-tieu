@@ -18,6 +18,7 @@
 <style>
 /* Layout: sổ tài chính cá nhân — thanh điều hướng trái (máy tính) / thanh tab dưới (điện thoại), vùng làm việc dạng lưới thẻ. */
 :root {
+  --nfb: calc(64px + env(safe-area-inset-bottom)); /* chừa chỗ cho dòng Powered by Netlify */
   color-scheme: light;
   --bg: #f3f5f4;
   --surface: #ffffff;
@@ -93,7 +94,7 @@ h2 { font-size: 16px; }
 .side .add-main { margin-top: 14px; }
 .side-foot { margin-top: auto; font-size: 12px; color: var(--muted); padding: 0 10px; }
 
-.main { padding: 20px 28px 80px; max-width: 1120px; width: 100%; margin: 0 auto; }
+.main { padding: 20px 28px calc(var(--nfb) + 24px); max-width: 1120px; width: 100%; margin: 0 auto; }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
 .month-pick { display: flex; align-items: center; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
 .month-pick button { width: 32px; height: 32px; border: 0; background: none; border-radius: 7px; cursor: pointer; color: var(--ink-2); font-size: 18px; line-height: 1; }
@@ -231,7 +232,7 @@ table.data th { color: var(--muted); font-weight: 500; font-size: 12.5px; }
 .budget-row .track { grid-column: 1 / -1; }
 
 /* modal */
-.scrim { position: fixed; inset: 0; background: rgba(8,14,12,.45); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
+.scrim { position: fixed; inset: 0; background: rgba(8,14,12,.45); display: none; align-items: center; justify-content: center; padding: 16px 16px var(--nfb); z-index: 50; }
 .scrim.open { display: flex; }
 .modal { background: var(--surface); border-radius: 16px; width: 100%; max-width: 460px; max-height: calc(100% - 16px); overflow: auto; padding: 18px 20px 20px; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
 .modal h2 { font-size: 18px; margin-bottom: 14px; }
@@ -245,7 +246,7 @@ table.data th { color: var(--muted); font-weight: 500; font-size: 12.5px; }
 .modal-actions .sp { flex: 1; }
 .err { color: var(--crit); font-size: 13px; margin-top: 8px; min-height: 1em; }
 
-.toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 16px; border-radius: 10px; font-size: 13.5px; z-index: 60; display: none; max-width: calc(100% - 32px); }
+.toast { position: fixed; left: 50%; bottom: calc(var(--nfb) + 72px); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 16px; border-radius: 10px; font-size: 13.5px; z-index: 60; display: none; max-width: calc(100% - 32px); }
 .toast.show { display: block; }
 
 .tabbar, .fab, .side { display: none; }
@@ -446,7 +447,7 @@ body.auth-mode .auth-wrap { min-height: calc(100vh - 48px); }
 .hamb { width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--surface-2); color: var(--ink); display: grid; place-items: center; cursor: pointer; }
 .hamb:active { transform: scale(.95); }
 .topbar .sync-pill { display: none !important; }
-.fbmenu { display: block; position: fixed; inset: 0; z-index: 60; background: var(--bg); overflow-y: auto; transform: translateX(100%); visibility: hidden; transition: transform .25s ease, visibility 0s linear .25s; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+.fbmenu { display: block; position: fixed; inset: 0; z-index: 60; background: var(--bg); overflow-y: auto; transform: translateX(100%); visibility: hidden; transition: transform .25s ease, visibility 0s linear .25s; padding-bottom: var(--nfb); }
 .fbmenu.open { transform: none; visibility: visible; transition: transform .25s ease; }
 body.menu-open { overflow: hidden; }
 .fbm-head { display: flex; align-items: center; justify-content: space-between; padding: calc(12px + env(safe-area-inset-top)) 16px 8px; position: sticky; top: 0; background: var(--bg); z-index: 1; }
@@ -490,11 +491,11 @@ body.menu-open .fbback { display: block; }
 @media (max-width: 720px) {
   .app { grid-template-columns: 1fr; }
   .side { display: none; }
-  .main { padding: 14px 16px 100px; }
-  .mp-pop { position: fixed; left: 16px; right: 16px; top: auto; bottom: calc(16px + env(safe-area-inset-bottom)); width: auto; }
+  .main { padding: 14px 16px calc(var(--nfb) + 72px); }
+  .mp-pop { left: 0; right: auto; width: min(296px, calc(100vw - 24px)); }
   .loan-row { grid-template-columns: 36px minmax(0, 1fr); }
   .loan-row > div:last-child { grid-column: 2; text-align: left !important; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .fab { display: grid; place-items: center; position: fixed; right: 18px; bottom: calc(20px + env(safe-area-inset-bottom)); width: 56px; height: 56px; border-radius: 18px; border: 0; background: var(--accent); color: var(--accent-ink); font-size: 28px; box-shadow: 0 8px 24px rgba(15,107,92,.35); z-index: 41; cursor: pointer; }
+  .fab { display: grid; place-items: center; position: fixed; right: 18px; bottom: calc(var(--nfb) + 4px); width: 56px; height: 56px; border-radius: 18px; border: 0; background: var(--accent); color: var(--accent-ink); font-size: 28px; box-shadow: 0 8px 24px rgba(15,107,92,.35); z-index: 41; cursor: pointer; }
   .topbar .add-top { display: none; }
   .tile .v { font-size: 18px; }
   .set-row, .set-head { grid-template-columns: minmax(0, 1fr) 120px auto; }
@@ -540,7 +541,7 @@ body.menu-open .fbback { display: block; }
 }
 
 /* ngăn kéo menu */
-.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(86vw, 340px); z-index: 60; background: var(--surface); box-shadow: -12px 0 40px rgba(0,0,0,.18); transform: translateX(105%); visibility: hidden; transition: transform .22s ease, visibility 0s linear .22s; display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom); }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(86vw, 340px); z-index: 60; background: var(--surface); box-shadow: -12px 0 40px rgba(0,0,0,.18); transform: translateX(105%); visibility: hidden; transition: transform .22s ease, visibility 0s linear .22s; display: flex; flex-direction: column; padding-bottom: var(--nfb); }
 .drawer.open { transform: none; visibility: visible; transition: transform .22s ease; }
 .fbback { background: rgba(8,14,12,.35); }
 body.menu-open { overflow: hidden; }
@@ -618,7 +619,7 @@ body.menu-open { overflow: hidden; }
 .hamb { position: relative; }
 .hamb.alert::after { content: ""; position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--crit); box-shadow: 0 0 0 2px var(--bg); }
 @media (max-width: 720px) {
-  .main { padding: 10px 12px 76px; }
+  .main { padding: 10px 12px calc(var(--nfb) + 68px); }
   .sec-body > .grid.tiles:not(.tiles3) { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
   .sec-body > .grid.tiles:not(.tiles3) > .hero { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; }
   .sec-body > .grid.tiles:not(.tiles3) > .hero .v { font-size: 20px; margin: 0; }
@@ -687,9 +688,8 @@ body.menu-open { overflow: hidden; }
 .dp-foot { display: flex; gap: 8px; margin-top: 8px; }
 .df-field .dp-btn { flex: 1; min-width: 0; height: 36px; }
 @media (max-width: 720px) {
-  .dp-back { background: rgba(8,14,12,.35); }
-  .dp-card { left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); width: auto; padding: 14px; }
-  .dp-grid button { height: 42px; font-size: 15px; }
+  .dp-card { width: min(310px, calc(100vw - 16px)); }
+  .dp-grid button { height: 38px; font-size: 15px; }
 }
 </style>
 </head>
@@ -2074,9 +2074,12 @@ function drawDatePicker() {
     ${DP.clear ? '<div class="dp-foot"><button type="button" class="btn sm ghost" data-dpd="">Bỏ chọn</button></div>' : ""}</div>`;
   pop.classList.add("open");
   const card = pop.querySelector(".dp-card");
-  if (!isMobile()) {
+  {
     const r = DP.btn.getBoundingClientRect(), h = card.offsetHeight, w = card.offsetWidth;
-    let top = r.bottom + 6; if (top + h > innerHeight - 8) top = Math.max(8, r.top - h - 6);
+    const nfb = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--nfb")) || 64;
+    const maxBottom = innerHeight - nfb;
+    let top = r.bottom + 6;
+    if (top + h > maxBottom) top = r.top - h - 6 >= 8 ? r.top - h - 6 : Math.max(8, maxBottom - h);
     card.style.top = top + "px"; card.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left)) + "px";
   }
 }
