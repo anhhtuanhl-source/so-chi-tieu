@@ -1352,10 +1352,6 @@ function viewScan() {
 function scanForm() {
   const r = SC.result || { options: [] }, f = SC.form;
   const type = f.type, t = todayStr();
-  const yd = (() => { const x = new Date(); x.setDate(x.getDate() - 1); return `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}`; })();
-  const dchips = [];
-  if (r.date && r.date !== t && r.date !== yd) dchips.push([r.date, "Ngày trong ảnh " + fmtDate(r.date).slice(0, 5)]);
-  dchips.push([t, "Hôm nay"], [yd, "Hôm qua"]);
   const catHint = f.catAuto ? `Tự nhận theo chữ “${esc(f.catAuto)}” trong ảnh · bấm để đổi` : (SC.result ? "Chưa nhận ra danh mục, hãy chọn" : "");
   return `<div class="seg" style="width:100%;display:grid;grid-template-columns:1fr 1fr"><button type="button" data-act="scan-type" data-v="expense" aria-pressed="${type === "expense"}">Chi tiêu</button><button type="button" data-act="scan-type" data-v="income" aria-pressed="${type === "income"}">Thu nhập</button></div>
     ${f.typeAuto ? `<div class="hint" style="margin-top:4px">Thấy dấu + trong ảnh nên sổ chọn Thu nhập.</div>` : ""}
@@ -1364,8 +1360,7 @@ function scanForm() {
     <label>Danh mục ${catHint ? `<span class="lbl-hint">${catHint}</span>` : ""}</label>
     <div class="chips">${cats(type).map(c => `<button type="button" class="chip ic" data-act="scan-cat" data-v="${esc(c.id)}" aria-pressed="${f.catId === c.id}" style="--cc:${catColor(c.id)}">${iconSvg(catIcon(c.id))}${esc(c.name)}</button>`).join("")}</div>
     <label>Ngày</label>
-    <div class="chips scroll">${dchips.map(([v, l]) => `<button type="button" class="chip" data-act="scan-date" data-v="${v}" aria-pressed="${f.date === v}">${l}</button>`).join("")}</div>
-    <div style="margin-top:8px">${dateField("sc-date", f.date, { label: "Chọn ngày khác" })}</div>
+    ${dateField("sc-date", f.date, { label: "Chọn ngày" })}
     <label>Ví</label>
     <div class="chips scroll">${S.settings.wallets.map(w => `<button type="button" class="chip" data-act="scan-w" data-v="${esc(w.id)}" aria-pressed="${f.walletId === w.id}">${esc(w.name)}</button>`).join("")}</div>
     <label for="sc-note">Ghi chú</label><input class="field" id="sc-note" maxlength="140" value="${esc(f.note)}">
@@ -2076,7 +2071,7 @@ function drawDatePicker() {
     <div class="dp-head"><button type="button" data-dpm="-1" aria-label="Tháng trước">‹</button><b>Tháng ${m}/${y}</b><button type="button" data-dpm="1" aria-label="Tháng sau">›</button></div>
     <div class="dp-dow"><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span></div>
     <div class="dp-grid">${cells}</div>
-    <div class="dp-foot"><button type="button" class="btn sm" data-dpd="${t}">Hôm nay</button>${DP.clear ? '<button type="button" class="btn sm ghost" data-dpd="">Bỏ chọn</button>' : ""}</div></div>`;
+    ${DP.clear ? '<div class="dp-foot"><button type="button" class="btn sm ghost" data-dpd="">Bỏ chọn</button></div>' : ""}</div>`;
   pop.classList.add("open");
   const card = pop.querySelector(".dp-card");
   if (!isMobile()) {
@@ -2605,11 +2600,9 @@ function viewTx() {
   const typeBtn = (v, l) => `<button type="button" data-act="ftype" data-v="${v}" aria-pressed="${f.type === v}">${l}</button>`;
   const catOpts = `<option value="">Mọi danh mục</option>` + S.settings.categories.map(c => `<option value="${esc(c.id)}" ${f.cat === c.id ? "selected" : ""}>${esc(c.name)}${c.type === "income" ? " (thu)" : ""}</option>`).join("");
   const wOpts = `<option value="">Mọi ví</option>` + S.settings.wallets.map(w => `<option value="${esc(w.id)}" ${f.wallet === w.id ? "selected" : ""}>${esc(w.name)}</option>`).join("");
-  const qr = (k, l) => { const [a, b] = quickRange(k); return `<button type="button" class="chip" data-act="frange" data-v="${k}" aria-pressed="${rangeOn() && f.from === a && f.to === b}">${l}</button>`; };
   const filterPanel = S.showFilters ? `<div class="fpanel">
       <div class="fp-row"><select id="f-cat" aria-label="Lọc danh mục">${catOpts}</select><select id="f-wallet" aria-label="Lọc ví">${wOpts}</select></div>
       <div class="fp-row"><div class="df-field"><span>Từ</span>${dateField("f-from", f.from || "", { clear: true, placeholder: "Từ ngày", label: "Từ ngày" })}</div><div class="df-field"><span>Đến</span>${dateField("f-to", f.to || "", { clear: true, placeholder: "Đến ngày", label: "Đến ngày" })}</div></div>
-      <div class="chips scroll">${qr("today", "Hôm nay")}${qr("yesterday", "Hôm qua")}${qr("7d", "7 ngày")}${qr("30d", "30 ngày")}${qr("year", "Năm nay")}</div>
       ${nF ? `<button class="btn sm ghost" type="button" data-act="clear-filter" style="align-self:flex-start">Xóa bộ lọc</button>` : ""}</div>` : "";
   const rangeNote = rangeOn() ? `<div class="rnote">Đang xem ${f.from && f.to && f.from === f.to ? "ngày " + fmtDate(f.from) : (f.from ? "từ " + fmtDate(f.from) + " " : "") + (f.to ? "đến " + fmtDate(f.to) : "")}<button type="button" data-act="frange" data-v="clear" aria-label="Bỏ lọc ngày">✕</button></div>` : "";
   const funnel = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>';
