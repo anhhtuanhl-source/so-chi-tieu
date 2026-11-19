@@ -1023,17 +1023,46 @@ async function initStore() {
   });
   let session = null;
   try { session = (await sb.auth.getSession()).data.session; } catch (e) {}
+  if (session && idleTooLong()) {
+    // Lần mở trước đã bỏ không quá 15 phút: đăng xuất, trừ khi còn thay đổi chưa đồng bộ (sẽ đăng xuất sau khi gửi xong)
+    let hasPend = false;
+    try { const d = JSON.parse(localStorage.getItem("so-chi-tieu-sync:" + session.user.id) || "{}"); const p = d.pend || {}; hasPend = !!(Object.keys(p.up || {}).length || Object.keys(p.del || {}).length || p.settings); } catch (e) {}
+    if (hasPend) lastAct = lastActStored();
+    else { try { await sb.auth.signOut(); } catch (e) {} try { localStorage.removeItem("so-chi-tieu-sync:" + session.user.id); } catch (e) {} session = null; S.authMsg = IDLE_MSG; }
+  }
   if (session) startSync(session.user);
   else { S.auth = "signedout"; goLocal(); }
   window.addEventListener("online", () => { if (S.mode === "sync") refresh(); });
-  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && S.mode === "sync" && Date.now() - lastLoad > 30000) refresh(); });
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState !== "visible") return; if (idleCheck()) return; if (S.mode === "sync" && Date.now() - lastLoad > 30000) refresh(); });
+  setInterval(idleCheck, 20000);
+}
+/* Tự đăng xuất sau 15 phút không dùng */
+const IDLE_MS = 15 * 60 * 1000, ACT_KEY = "so-chi-tieu-active", IDLE_MSG = "Sổ đã tự đăng xuất vì 15 phút không dùng. Hãy đăng nhập lại.";
+let lastAct = Date.now(), actSaved = 0;
+const lastActStored = () => { try { return +localStorage.getItem(ACT_KEY) || 0; } catch (e) { return 0; } };
+function idleTooLong() { const st = lastActStored(); return st > 0 && Date.now() - st >= IDLE_MS; }
+function markActive() {
+  if (document.visibilityState === "visible" && idleCheck()) return;
+  lastAct = Date.now();
+  if (lastAct - actSaved > 5000) { actSaved = lastAct; try { localStorage.setItem(ACT_KEY, String(lastAct)); } catch (e) {} }
+}
+["pointerdown", "keydown", "touchstart", "wheel", "scroll", "input"].forEach(ev => addEventListener(ev, markActive, { passive: true, capture: true }));
+function idleCheck() {
+  if (S.mode !== "sync" || !uid) return false;
+  const last = Math.max(lastAct, lastActStored());
+  if (Date.now() - last < IDLE_MS) return false;
+  if (pendCount()) { flush(); return false; }
+  try { closeModal(); } catch (e) {}
+  try { closeDatePicker(); } catch (e) {}
+  signOut().then(() => { S.authMsg = IDLE_MSG; render(); });
+  return true;
 }
 async function signOut() {
   if (pendCount()) { toast("Còn thay đổi chưa đồng bộ. Hãy kết nối mạng rồi thử lại."); flush(); return; }
   try { if (channel) await sb.removeChannel(channel); await sb.auth.signOut(); } catch (e) {}
   try { localStorage.removeItem(cacheKey()); } catch (e) {}
   uid = null; channel = null; synced = {}; pend = { up: {}, del: {}, settings: false };
-  S.auth = "signedout"; S.email = null; S.skipLogin = false;
+  S.auth = "signedout"; S.email = null; S.skipLogin = false; S.authTab = "login";
   try { localStorage.removeItem(SKIP_KEY); } catch (e) {}
   goLocal();
 }
@@ -1075,18 +1104,18 @@ function authErr(e) {
   return "Có lỗi: " + m;
 }
 function viewLogin() {
-  const signup = S.authTab === "signup";
+  const signup = false;
   return `<div class="auth-wrap"><div class="card auth-card">
     <div class="brand" style="padding:0 0 14px"><div class="brand-mark"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="bgr3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5EEAD4"/><stop offset=".55" stop-color="#14B8A6"/><stop offset="1" stop-color="#0F766E"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#bgr3)"/><circle cx="42" cy="21" r="9.5" fill="#FDE68A"/><circle cx="42" cy="21" r="6.5" fill="#FBBF24"/><path d="M42 17.5v7" stroke="#B45309" stroke-width="2.2" stroke-linecap="round"/><rect x="11" y="24" width="42" height="28" rx="8" fill="#fff"/><path d="M11 32h42" stroke="#CCFBF1" stroke-width="3"/><rect x="38" y="35" width="15" height="10" rx="5" fill="#CCFBF1"/><circle cx="44" cy="40" r="2.3" fill="#0F766E"/></svg></div><div class="brand-name">Sổ Chi Tiêu</div></div>
     <h1 style="margin-bottom:6px">${signup ? "Tạo tài khoản" : "Đăng nhập"}</h1>
     <p class="hint" style="margin:0 0 14px">Đăng nhập cùng một tài khoản trên điện thoại và máy tính để sổ tự đồng bộ.</p>
-    <div class="seg" style="width:100%;display:grid;grid-template-columns:1fr 1fr;margin-bottom:6px"><button type="button" data-act="auth-tab" data-v="login" aria-pressed="${!signup}">Đăng nhập</button><button type="button" data-act="auth-tab" data-v="signup" aria-pressed="${signup}">Tạo tài khoản</button></div>
     <form id="auth-form" novalidate>
       <label class="lbl" for="au-email">Email</label><input class="field" id="au-email" type="email" autocomplete="email" required value="${esc(S.authEmail || "")}">
       <label class="lbl" for="au-pass">Mật khẩu</label><div class="pw-wrap"><input class="field" id="au-pass" type="password" autocomplete="${signup ? "new-password" : "current-password"}" minlength="6" required placeholder="${signup ? "Ít nhất 6 ký tự" : ""}"><button type="button" class="pw-eye" data-act="pw-toggle" aria-label="Hiện mật khẩu" aria-pressed="false"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path class="pw-slash" d="M4 4l16 16"/></svg></button></div>
       <div class="err" id="au-err">${esc(S.authMsg || "")}</div>
       <button class="btn primary" type="submit" style="width:100%;height:44px;margin-top:6px" id="au-submit">${signup ? "Tạo tài khoản" : "Đăng nhập"}</button>
     </form>
+    <button class="btn ghost sm" type="button" data-act="auth-forgot" style="margin-top:8px">Quên mật khẩu?</button>
   </div></div>`;
 }
 document.addEventListener("submit", async e => {
@@ -1130,7 +1159,7 @@ function accountCard() {
     <button class="btn" type="button" data-act="sign-out">Đăng xuất</button></div>`;
   return `<div class="card"><div class="card-h"><h2>Đồng bộ giữa các thiết bị</h2></div>
     <p class="hint" style="margin:-4px 0 12px">Sổ đang chỉ lưu trên thiết bị này. Đăng nhập để dùng chung một sổ trên điện thoại và máy tính.</p>
-    <button class="btn primary" type="button" data-act="auth-show">Đăng nhập / Tạo tài khoản</button></div>`;
+    <button class="btn primary" type="button" data-act="auth-show">Đăng nhập</button></div>`;
 }
 
 /* ---------- tính toán ---------- */
