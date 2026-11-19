@@ -416,6 +416,7 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .sync-pill[hidden] { display: none; }
 .auth-wrap { display: grid; place-items: center; min-height: calc(100vh - 140px); }
 body.auth-mode .side, body.auth-mode .tabbar, body.auth-mode .fab, body.auth-mode .appbar { display: none !important; }
+.fab[hidden] { display: none !important; }
 body.auth-mode .app { grid-template-columns: 1fr; }
 body.auth-mode .main { max-width: none; padding: 24px 16px; }
 body.auth-mode .auth-wrap { min-height: calc(100vh - 48px); }
@@ -665,6 +666,30 @@ body.menu-open { overflow: hidden; }
   .ms-card { width: 58px; padding: 6px 2px 4px; }
   .ms-bar { height: 34px; }
   .h-sub { display: none; }
+}
+
+.dp-btn { display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: left; cursor: pointer; font-variant-numeric: tabular-nums; }
+.dp-btn svg { color: var(--muted); flex: none; }
+.dp-txt.ph { color: var(--muted); }
+.dp-pop { position: fixed; inset: 0; z-index: 90; display: none; }
+.dp-pop.open { display: block; }
+.dp-back { position: absolute; inset: 0; }
+.dp-card { position: absolute; width: 290px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 16px 44px rgba(0,0,0,.22); padding: 12px; }
+.dp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.dp-head button { width: 34px; height: 34px; border: 0; background: none; border-radius: 8px; cursor: pointer; font-size: 18px; color: var(--ink-2); }
+.dp-head button:hover { background: var(--surface-2); }
+.dp-dow, .dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+.dp-dow span { font-size: 11.5px; color: var(--muted); font-weight: 600; padding: 4px 0; }
+.dp-grid button { height: 36px; border: 0; border-radius: 9px; background: none; cursor: pointer; font-variant-numeric: tabular-nums; font-size: 14px; color: var(--ink); }
+.dp-grid button:hover { background: var(--surface-2); }
+.dp-grid button.today { box-shadow: inset 0 0 0 1.5px var(--accent); color: var(--accent); font-weight: 600; }
+.dp-grid button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.dp-foot { display: flex; gap: 8px; margin-top: 8px; }
+.df-field .dp-btn { flex: 1; min-width: 0; height: 36px; }
+@media (max-width: 720px) {
+  .dp-back { background: rgba(8,14,12,.35); }
+  .dp-card { left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); width: auto; padding: 14px; }
+  .dp-grid button { height: 42px; font-size: 15px; }
 }
 </style>
 </head>
@@ -1340,7 +1365,7 @@ function scanForm() {
     <div class="chips">${cats(type).map(c => `<button type="button" class="chip ic" data-act="scan-cat" data-v="${esc(c.id)}" aria-pressed="${f.catId === c.id}" style="--cc:${catColor(c.id)}">${iconSvg(catIcon(c.id))}${esc(c.name)}</button>`).join("")}</div>
     <label>Ngày</label>
     <div class="chips scroll">${dchips.map(([v, l]) => `<button type="button" class="chip" data-act="scan-date" data-v="${v}" aria-pressed="${f.date === v}">${l}</button>`).join("")}</div>
-    <input class="field" type="date" id="sc-date" value="${esc(f.date)}" style="margin-top:8px" aria-label="Chọn ngày khác">
+    <div style="margin-top:8px">${dateField("sc-date", f.date, { label: "Chọn ngày khác" })}</div>
     <label>Ví</label>
     <div class="chips scroll">${S.settings.wallets.map(w => `<button type="button" class="chip" data-act="scan-w" data-v="${esc(w.id)}" aria-pressed="${f.walletId === w.id}">${esc(w.name)}</button>`).join("")}</div>
     <label for="sc-note">Ghi chú</label><input class="field" id="sc-note" maxlength="140" value="${esc(f.note)}">
@@ -1516,7 +1541,7 @@ function budgetRing(b) {
 }
 function budgetCard(key, compact) {
   const b = budgetInfo(key);
-  const acts = b.limit ? `<span class="card-acts"><button class="btn sm" type="button" data-act="bud-open">Sửa</button><button class="btn sm ghost danger" type="button" data-act="bud-del">Xóa</button></span>` : "";
+  const acts = compact ? (b.limit ? '<button class="link" type="button" data-act="nav" data-v="ngan-sach">Chi tiết</button>' : "") : b.limit ? `<span class="card-acts"><button class="btn sm" type="button" data-act="bud-open">Sửa</button><button class="btn sm ghost danger" type="button" data-act="bud-del">Xóa</button></span>` : "";
   return `<div class="card"><div class="card-h"><h2>Ngân sách tháng${b.limit ? `<span class="h-sub">${fmt(b.limit)}/tháng</span>` : ""}</h2>${acts}</div>${budgetSummary(key, compact)}</div>`;
 }
 function openBudgetModal() {
@@ -1873,8 +1898,8 @@ function loanListHtml() {
   const tabBtn = (v, lb, n) => `<button type="button" data-act="loan-tab" data-v="${v}" aria-pressed="${tab === v}">${lb} (${n})</button>`;
   const empty = { borrow: "Chưa có khoản đi vay nào.", lend: "Chưa có khoản cho vay nào.", done: "Chưa có khoản nào đã xong." }[tab];
   return `<div class="card"><div class="card-h"><div class="seg scroll">${tabBtn("borrow", "Đi vay", open("borrow").length)}${tabBtn("lend", "Cho vay", open("lend").length)}${tabBtn("done", "Đã xong", done.length)}</div>
-    <button class="btn sm primary" type="button" data-act="loan-new">+ Thêm</button></div>
-    ${list.length ? list.map(loanRow).join("") : `<div class="empty"><p>${empty}</p><button class="btn primary" type="button" data-act="loan-new">+ Thêm khoản vay</button></div>`}</div>`;
+</div>
+    ${list.length ? list.map(loanRow).join("") : `<div class="empty"><p>${empty}</p></div>`}</div>`;
 }
 
 let LM = null;
@@ -1894,9 +1919,9 @@ function openLoanForm(l) {
       ${LM.rateType === "float" ? `<div class="hint" style="margin-top:4px">Nhập lãi suất đang áp dụng. Khi ngân hàng điều chỉnh, sửa lại số này để sổ tính lại.</div>` : ""}`}
       <label>Cách trả</label>
       <div class="opt-list">${PAY_METHODS.map(([v, t, d]) => `<button type="button" class="opt" data-pm="${v}" aria-pressed="${LM.method === v}"><b>${t}</b><span>${d}</span></button>`).join("")}</div>
-      <div class="row2"><div><label for="ln-date">Ngày ${b ? "vay" : "cho vay"}</label><input class="field" type="date" id="ln-date" value="${esc(LM.date)}"></div>
+      <div class="row2"><div><label>Ngày ${b ? "vay" : "cho vay"}</label>${dateField("ln-date", LM.date)}</div>
       ${inst ? `<div><label for="ln-months">Số tháng trả góp</label><input class="field r" id="ln-months" inputmode="numeric" value="${LM.months || ""}" placeholder="vd 12"></div>`
-             : `<div><label for="ln-due">Ngày đến hạn</label><input class="field" type="date" id="ln-due" value="${esc(LM.due || "")}"></div>`}</div>
+             : `<div><label>Ngày đến hạn</label>${dateField("ln-due", LM.due || "", { clear: true, placeholder: "Chọn ngày" })}</div>`}</div>
       <div class="loan-preview" id="ln-prev"></div>
       <label>${b ? "Tiền nhận vào ví" : "Tiền lấy từ ví"}</label>
       <div class="chips scroll"><button type="button" class="chip" data-lw="" aria-pressed="${!LM.walletId}">Không ghi vào ví</button>${S.settings.wallets.map(w => `<button type="button" class="chip" data-lw="${esc(w.id)}" aria-pressed="${LM.walletId === w.id}">${esc(w.name)}</button>`).join("")}</div>
@@ -1968,7 +1993,7 @@ function openLoanPay(id) {
     ${est ? `<div class="hint" style="margin-top:4px">${nx ? "Lãi của kỳ này" : "Lãi tính đến hôm nay"}: <b class="num">${fmt(est)}</b></div>` : ""}
     <label>${b ? "Trả từ ví" : "Nhận vào ví"}</label>
     <div class="chips scroll"><button type="button" class="chip" data-pw="" aria-pressed="${!l.walletId}">Không ghi vào ví</button>${S.settings.wallets.map(w => `<button type="button" class="chip" data-pw="${esc(w.id)}" aria-pressed="${(l.walletId || "") === w.id}">${esc(w.name)}</button>`).join("")}</div>
-    <label for="lp-date">Ngày</label><input class="field" type="date" id="lp-date" value="${todayStr()}">
+    <label>Ngày</label>${dateField("lp-date", todayStr())}
     <label for="lp-note">Ghi chú</label><input class="field" id="lp-note" maxlength="140" placeholder="Không bắt buộc">
     <div class="err" id="lp-err"></div>
     <div class="modal-actions"><span class="sp"></span><button class="btn" type="button" id="lp-cancel">Hủy</button><button class="btn primary" type="button" id="lp-save">Lưu</button></div>`);
@@ -2024,6 +2049,64 @@ function viewLoans() {
   const owe = loans().filter(l => l.kind === "borrow").reduce((a, l) => a + loanRemaining(l), 0), recv = loans().filter(l => l.kind === "lend").reduce((a, l) => a + loanRemaining(l), 0);
   return sectionsPage("vay", sb => topbar("Vay", false, sb), { tiles: loanTilesHtml, list: loanListHtml }, { tiles: () => `Nợ ${fmt(owe)} · Cho vay ${fmt(recv)}`, list: () => loans().filter(l => loanLeft(l) > 0).length + " khoản đang mở" });
 }
+/* ---------- Bộ chọn ngày dd/mm/yyyy ---------- */
+const CAL_IC = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
+function dateField(id, value, opts) {
+  opts = opts || {};
+  return `<input type="hidden" id="${id}" value="${esc(value || "")}"><button type="button" class="field dp-btn ${opts.cls || ""}" data-act="dp-open" data-for="${id}" ${opts.clear ? 'data-clear="1"' : ""} ${opts.min ? `data-min="${opts.min}"` : ""} aria-label="${esc(opts.label || "Chọn ngày")}"><span class="dp-txt ${value ? "" : "ph"}">${value ? fmtDate(value) : esc(opts.placeholder || "dd/mm/yyyy")}</span>${CAL_IC}</button>`;
+}
+let DP = null;
+function openDatePicker(btn) {
+  const inp = document.getElementById(btn.dataset.for); if (!inp) return;
+  const v = inp.value || todayStr();
+  DP = { btn, inp, view: v.slice(0, 7), clear: !!btn.dataset.clear };
+  drawDatePicker();
+}
+function drawDatePicker() {
+  let pop = document.getElementById("dp-pop");
+  if (!pop) { pop = document.createElement("div"); pop.id = "dp-pop"; pop.className = "dp-pop"; document.body.appendChild(pop); }
+  const [y, m] = DP.view.split("-").map(Number);
+  const first = new Date(y, m - 1, 1), nd = new Date(y, m, 0).getDate();
+  const lead = (first.getDay() + 6) % 7;
+  const sel = DP.inp.value, t = todayStr();
+  let cells = "";
+  for (let i = 0; i < lead; i++) cells += "<span></span>";
+  for (let d = 1; d <= nd; d++) { const ds = `${y}-${pad(m)}-${pad(d)}`; cells += `<button type="button" data-dpd="${ds}" class="${ds === t ? "today" : ""}" aria-pressed="${ds === sel}">${d}</button>`; }
+  pop.innerHTML = `<div class="dp-back" data-dpx="1"></div><div class="dp-card" role="dialog" aria-label="Chọn ngày">
+    <div class="dp-head"><button type="button" data-dpm="-1" aria-label="Tháng trước">‹</button><b>Tháng ${m}/${y}</b><button type="button" data-dpm="1" aria-label="Tháng sau">›</button></div>
+    <div class="dp-dow"><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span></div>
+    <div class="dp-grid">${cells}</div>
+    <div class="dp-foot"><button type="button" class="btn sm" data-dpd="${t}">Hôm nay</button>${DP.clear ? '<button type="button" class="btn sm ghost" data-dpd="">Bỏ chọn</button>' : ""}</div></div>`;
+  pop.classList.add("open");
+  const card = pop.querySelector(".dp-card");
+  if (!isMobile()) {
+    const r = DP.btn.getBoundingClientRect(), h = card.offsetHeight, w = card.offsetWidth;
+    let top = r.bottom + 6; if (top + h > innerHeight - 8) top = Math.max(8, r.top - h - 6);
+    card.style.top = top + "px"; card.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left)) + "px";
+  }
+}
+function closeDatePicker() { const pop = document.getElementById("dp-pop"); if (pop) pop.classList.remove("open"); DP = null; }
+function pickDate(ds) {
+  const { inp, btn } = DP;
+  inp.value = ds;
+  const txt = btn.querySelector(".dp-txt"); if (txt) { txt.textContent = ds ? fmtDate(ds) : "dd/mm/yyyy"; txt.classList.toggle("ph", !ds); }
+  closeDatePicker();
+  inp.dispatchEvent(new Event("input", { bubbles: true }));
+  inp.dispatchEvent(new Event("change", { bubbles: true }));
+}
+document.addEventListener("click", e => {
+  const pop = e.target.closest && e.target.closest("#dp-pop");
+  if (!pop || !DP) return;
+  e.stopPropagation();
+  const d = e.target.closest("[data-dpd]"), mv = e.target.closest("[data-dpm]");
+  if (d) pickDate(d.dataset.dpd);
+  else if (mv) { DP.view = shiftMonth(DP.view, +mv.dataset.dpm); drawDatePicker(); }
+  else if (e.target.closest("[data-dpx]")) closeDatePicker();
+}, true);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && DP) { e.stopPropagation(); closeDatePicker(); } }, true);
+
+/* Nút chính theo từng trang (một nút thêm duy nhất) */
+const PRIMARY = { "tong-quan": ["add-tx", "+ Thêm giao dịch", "Thêm giao dịch"], "giao-dich": ["add-tx", "+ Thêm giao dịch", "Thêm giao dịch"], "bao-cao": ["add-tx", "+ Thêm giao dịch", "Thêm giao dịch"], "vay": ["loan-new", "+ Thêm khoản vay", "Thêm khoản vay"], "tiet-kiem": ["fund-new", "+ Tạo quỹ", "Tạo quỹ mới"] };
 /* ---------- Tiết kiệm & Vay: dữ liệu ---------- */
 const funds = () => S.settings.funds || (S.settings.funds = []);
 const loans = () => S.settings.loans || (S.settings.loans = []);
@@ -2091,7 +2174,7 @@ function monthPicker() {
     }).join("");
     pop = `<div class="mp-pop" role="dialog" aria-label="Chọn tháng"><div class="mp-head"><button type="button" data-act="mp-year" data-d="-1" aria-label="Năm trước">‹</button><span>Năm ${y}</span><button type="button" data-act="mp-year" data-d="1" aria-label="Năm sau">›</button></div>
       <div class="mp-grid">${cells}</div>
-      <div class="mp-foot"><button class="btn sm ghost" type="button" data-act="mp-today">Hiện tại</button><button class="btn sm" type="button" data-act="mp-close">Đóng</button></div></div>`;
+</div>`;
   }
   return `<div class="mp-wrap"><div class="month-pick"><button type="button" data-act="month" data-d="-1" aria-label="Tháng trước">‹</button><button type="button" class="lbl" data-act="mp-toggle" aria-expanded="${!!S.mp}" aria-haspopup="dialog">${monthLabel(S.month)}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><button type="button" data-act="month" data-d="1" aria-label="Tháng sau">›</button></div>${pop}</div>
     <button class="btn sm" type="button" data-act="mp-today" ${S.month === cur ? "disabled" : ""} title="Về tháng hiện tại">Hiện tại</button>`;
@@ -2130,8 +2213,8 @@ function viewFunds() {
     <div class="card tile hero">${tileK("wallet", "#fff", "Tổng các quỹ")}<div class="v">${fmt(total)}</div><div class="s">${list.length} quỹ</div></div>
     <div class="card tile inc">${tileK("inc", "var(--inc)", "Đã nạp tháng này")}<div class="v">${fmt(dep)}</div><div class="s">${planned ? "Kế hoạch " + fmtShort(planned) + "/tháng" : "Chưa có kế hoạch"}</div></div>
     <div class="card tile net">${tileK("net", "var(--c1)", "Đạt mục tiêu")}<div class="v">${reached}/${list.filter(f => f.target).length || 0}</div><div class="s">quỹ có đặt mục tiêu</div></div></div>`;
-  const cards = list.map(fundCard).join("") + `<button type="button" class="card fund-new" data-act="fund-new"><span style="font-size:28px;line-height:1">+</span><b>Tạo quỹ mới</b><span class="hint">Đặt mục tiêu, hạn và kế hoạch nạp</span></button>`;
-  return sectionsPage("tiet-kiem", sb => topbar("Tiết kiệm", false, sb), { tiles: () => tiles, funds: () => (list.length ? "" : `<div class="banner"><span><b>Tạo quỹ cho từng mục tiêu.</b> Ví dụ quỹ khẩn cấp, du lịch, mua xe. Mỗi lần nạp, tiền được chuyển từ ví sang quỹ, nên số dư ví phản ánh đúng số tiền còn được tiêu.</span></div>`) + `<div class="fund-grid">${cards}</div>` }, { tiles: () => "Tổng các quỹ " + fmt(total), funds: () => list.length + " quỹ" });
+  const cards = list.map(fundCard).join("");
+  return sectionsPage("tiet-kiem", sb => topbar("Tiết kiệm", false, sb), { tiles: () => tiles, funds: () => (list.length ? "" : `<div class="banner"><span><b>Tạo quỹ cho từng mục tiêu.</b> Ví dụ quỹ khẩn cấp, du lịch, mua xe. Mỗi lần nạp, tiền được chuyển từ ví sang quỹ, nên số dư ví phản ánh đúng số tiền còn được tiêu.</span></div>`) + (cards ? `<div class="fund-grid">${cards}</div>` : "") }, { tiles: () => "Tổng các quỹ " + fmt(total), funds: () => list.length + " quỹ" });
 }
 
 let FM = null;
@@ -2142,7 +2225,7 @@ function openFundForm(f) {
     ${f ? "" : `<label>Gợi ý</label><div class="chips">${FUND_TEMPLATES.map(n => `<button type="button" class="chip" data-tpl="${esc(n)}">${esc(n)}</button>`).join("")}</div>`}
     <label for="fd-name">Tên quỹ</label><input class="field" id="fd-name" maxlength="40" value="${esc(FM.name)}" placeholder="Ví dụ: Du lịch Đà Lạt">
     <div class="row2"><div><label for="fd-target">Mục tiêu (không bắt buộc)</label><input class="field r" id="fd-target" inputmode="numeric" value="${FM.target ? fmtNum(FM.target) : ""}" placeholder="vd 20.000.000"></div>
-    <div><label for="fd-deadline">Hạn hoàn thành</label><input class="field" id="fd-deadline" type="date" value="${esc(FM.deadline || "")}"></div></div>
+    <div><label>Hạn hoàn thành</label>${dateField("fd-deadline", FM.deadline || "", { clear: true, placeholder: "Không bắt buộc" })}</div></div>
     <div class="row2"><div><label for="fd-plan">Kế hoạch nạp mỗi tháng</label><input class="field r" id="fd-plan" inputmode="numeric" value="${FM.plan ? fmtNum(FM.plan) : ""}" placeholder="vd 2.000.000"></div>
     <div><label for="fd-wallet">Ví nạp mặc định</label><select class="field" id="fd-wallet">${walletOpts(FM.walletId)}</select></div></div>
     <label>Màu</label>${swatches(FM.color)}
@@ -2174,7 +2257,7 @@ function openFundMoney(id, withdraw) {
     <label for="fm-amt">Số tiền</label><input class="amount-in" id="fm-amt" inputmode="numeric" autocomplete="off" placeholder="0">
     ${!withdraw && f.plan ? `<div class="chips" style="margin-top:8px"><button type="button" class="chip" data-fill="${f.plan}">Theo kế hoạch ${fmtShort(f.plan)}</button>${f.target && f.target > bal ? `<button type="button" class="chip" data-fill="${f.target - bal}">Nạp đủ mục tiêu</button>` : ""}</div>` : withdraw ? `<div class="chips" style="margin-top:8px"><button type="button" class="chip" data-fill="${bal}">Rút toàn bộ</button></div>` : ""}
     <div class="row2"><div><label for="fm-w">${withdraw ? "Rút về ví" : "Lấy tiền từ ví"}</label><select class="field" id="fm-w">${walletOpts(f.walletId || S.settings.wallets[0]?.id)}</select></div>
-    <div><label for="fm-date">Ngày</label><input class="field" type="date" id="fm-date" value="${todayStr()}"></div></div>
+    <div><label>Ngày</label>${dateField("fm-date", todayStr())}</div></div>
     <div class="hint" id="fm-wb"></div>
     <label for="fm-note">Ghi chú</label><input class="field" id="fm-note" maxlength="140" placeholder="Không bắt buộc">
     <div class="err" id="fm-err"></div>
@@ -2297,7 +2380,7 @@ function renderNav() {
 function topbar(title, withMonth = true, extra = "") {
   return `<div class="topbar"><h1>${title}</h1><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="sync-pill" hidden></span>
     ${withMonth ? monthPicker() : ""}${extra}
-    <button class="btn primary add-top" type="button" data-act="add-tx">+ Thêm giao dịch</button></div></div>`;
+    ${PRIMARY[S.view] ? `<button class="btn primary add-top" type="button" data-act="${PRIMARY[S.view][0]}">${PRIMARY[S.view][1]}</button>` : ""}</div></div>`;
 }
 
 function txRow(t) {
@@ -2318,7 +2401,7 @@ function txRow(t) {
 }
 
 function emptyTx(msg) {
-  return `<div class="empty"><p>${msg}</p><button class="btn primary" type="button" data-act="add-tx">+ Thêm giao dịch</button></div>`;
+  return `<div class="empty"><p>${msg}</p></div>`;
 }
 
 function statusOf(spent, limit) {
@@ -2525,7 +2608,7 @@ function viewTx() {
   const qr = (k, l) => { const [a, b] = quickRange(k); return `<button type="button" class="chip" data-act="frange" data-v="${k}" aria-pressed="${rangeOn() && f.from === a && f.to === b}">${l}</button>`; };
   const filterPanel = S.showFilters ? `<div class="fpanel">
       <div class="fp-row"><select id="f-cat" aria-label="Lọc danh mục">${catOpts}</select><select id="f-wallet" aria-label="Lọc ví">${wOpts}</select></div>
-      <div class="fp-row"><label class="df-field"><span>Từ</span><input type="date" id="f-from" value="${esc(f.from || "")}" aria-label="Từ ngày"></label><label class="df-field"><span>Đến</span><input type="date" id="f-to" value="${esc(f.to || "")}" aria-label="Đến ngày"></label></div>
+      <div class="fp-row"><div class="df-field"><span>Từ</span>${dateField("f-from", f.from || "", { clear: true, placeholder: "Từ ngày", label: "Từ ngày" })}</div><div class="df-field"><span>Đến</span>${dateField("f-to", f.to || "", { clear: true, placeholder: "Đến ngày", label: "Đến ngày" })}</div></div>
       <div class="chips scroll">${qr("today", "Hôm nay")}${qr("yesterday", "Hôm qua")}${qr("7d", "7 ngày")}${qr("30d", "30 ngày")}${qr("year", "Năm nay")}</div>
       ${nF ? `<button class="btn sm ghost" type="button" data-act="clear-filter" style="align-self:flex-start">Xóa bộ lọc</button>` : ""}</div>` : "";
   const rangeNote = rangeOn() ? `<div class="rnote">Đang xem ${f.from && f.to && f.from === f.to ? "ngày " + fmtDate(f.from) : (f.from ? "từ " + fmtDate(f.from) + " " : "") + (f.to ? "đến " + fmtDate(f.to) : "")}<button type="button" data-act="frange" data-v="clear" aria-label="Bỏ lọc ngày">✕</button></div>` : "";
@@ -2735,11 +2818,13 @@ function render() {
   let banner = "";
   const hasData = Object.keys(S.months).length > 0;
   const stale = !S.lastBackup || Date.now() - S.lastBackup > 30 * 864e5;
-  if (S.mode === "local" && hasData && stale && S.view !== "cai-dat") banner = `<div class="banner compact"><span><b>${S.lastBackup ? "Hơn 30 ngày chưa sao lưu" : "Chưa sao lưu dữ liệu"}</b><span class="bn-sub"> · dữ liệu chỉ nằm trên máy này</span></span><button class="btn sm" type="button" data-act="backup" style="margin-left:auto">Sao lưu</button></div>`;
+  /* nhắc sao lưu: chấm đỏ trên nút menu */
   const v = { "tong-quan": viewOverview, "giao-dich": viewTx, "ngan-sach": viewBudget, "tiet-kiem": viewFunds, "vay": viewLoans, "quet-anh": viewScan, "bao-cao": viewReport, "cai-dat": viewSettings }[S.view] || viewOverview;
   TIPS = []; $("#tip").style.display = "none";
   main.innerHTML = banner + v();
   renderSyncState();
+  const fab = document.querySelector(".fab"), pa = PRIMARY[S.view];
+  if (fab) { fab.hidden = !pa || document.body.classList.contains("auth-mode"); if (pa) { fab.dataset.act = pa[0]; fab.setAttribute("aria-label", pa[2]); } }
   const abt = document.getElementById("ab-title"); if (abt) abt.textContent = (VIEWS.find(x => x[0] === S.view) || ["", "Sổ Chi Tiêu"])[1];
   const needBk = S.mode === "local" && Object.keys(S.months).length > 0 && (!S.lastBackup || Date.now() - S.lastBackup > 30 * 864e5);
   document.querySelector("#appbar .hamb")?.classList.toggle("alert", needBk);
@@ -2791,7 +2876,7 @@ function drawTx() {
     <div class="seg" style="width:100%;display:grid;grid-template-columns:repeat(3,1fr)">${seg("expense", "Chi tiêu")}${seg("income", "Thu nhập")}${seg("transfer", "Chuyển khoản")}</div>
     <label for="m-amt">Số tiền</label><input class="amount-in" id="m-amt" inputmode="numeric" autocomplete="off" placeholder="0" value="${t.amount ? fmtNum(t.amount) : ""}">
     ${catChips}${walletFields}
-    <div class="row2"><div><label for="m-date">Ngày</label><input class="field" type="date" id="m-date" value="${esc(t.date)}"></div>
+    <div class="row2"><div><label>Ngày</label>${dateField("m-date", t.date)}</div>
     <div><label for="m-note">Ghi chú</label><input class="field" id="m-note" value="${esc(t.note || "")}" placeholder="Không bắt buộc" maxlength="140"></div></div>
     <div class="err" id="m-err"></div>
     <div class="modal-actions">${t.isEdit ? '<button class="btn danger" type="button" id="m-del">Xóa</button>' : ""}<span class="sp"></span><button class="btn" type="button" id="m-cancel">Hủy</button><button class="btn primary" type="button" id="m-save">Lưu</button></div>`);
@@ -2885,6 +2970,7 @@ const actions = {
   "trk-del": el => { const id = el.dataset.id; confirmBox("Bỏ theo dõi " + esc(catName(id)) + "?", "Hạn mức riêng của danh mục này sẽ bị xóa.", "Xóa", () => { delete S.settings.budgets[id]; saveSettings(); render(); }); },
   "scan-w": el => { scanCollect(); SC.form.walletId = el.dataset.v; render(); },
   "scan-date": el => { scanCollect(); SC.form.date = el.dataset.v; render(); },
+  "dp-open": el => openDatePicker(el),
   "tog-filters": () => { S.showFilters = !S.showFilters; render(); },
   "tog-cmp": () => { S.showCmp = !S.showCmp; render(); },
   "cmp-n": el => { S.cmpN = +el.dataset.v; render(); },
