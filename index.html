@@ -696,13 +696,18 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 @media (max-width: 720px) {
   input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]), select, textarea { font-size: 16px !important; }
 }
+.pw-wrap { position: relative; }
+.pw-wrap .field { padding-right: 46px; width: 100%; }
+.pw-eye { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; display: grid; place-items: center; border: 0; background: none; color: var(--muted); cursor: pointer; border-radius: 8px; }
+.pw-eye:hover { color: var(--ink); }
+.pw-eye[aria-pressed="false"] .pw-slash { display: none; }
 </style>
 </head>
 <body>
-<header class="appbar" id="appbar"><div class="brand-sm"><span class="ab-title" id="ab-title"></span><div class="brand-mark"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="bgr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5EEAD4"/><stop offset=".55" stop-color="#14B8A6"/><stop offset="1" stop-color="#0F766E"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#bgr)"/><circle cx="42" cy="21" r="9.5" fill="#FDE68A"/><circle cx="42" cy="21" r="6.5" fill="#FBBF24"/><path d="M42 17.5v7" stroke="#B45309" stroke-width="2.2" stroke-linecap="round"/><rect x="11" y="24" width="42" height="28" rx="8" fill="#fff"/><path d="M11 32h42" stroke="#CCFBF1" stroke-width="3"/><rect x="38" y="35" width="15" height="10" rx="5" fill="#CCFBF1"/><circle cx="44" cy="40" r="2.3" fill="#0F766E"/></svg></div><span>Sổ Chi Tiêu</span></div><span class="sync-pill" hidden></span><button class="hamb" type="button" data-act="menu" aria-label="Mở menu" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></header>
+<header class="appbar" id="appbar"><div class="brand-sm"><span class="ab-title" id="ab-title"></span><div class="brand-mark"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="bgr1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5EEAD4"/><stop offset=".55" stop-color="#14B8A6"/><stop offset="1" stop-color="#0F766E"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#bgr1)"/><circle cx="42" cy="21" r="9.5" fill="#FDE68A"/><circle cx="42" cy="21" r="6.5" fill="#FBBF24"/><path d="M42 17.5v7" stroke="#B45309" stroke-width="2.2" stroke-linecap="round"/><rect x="11" y="24" width="42" height="28" rx="8" fill="#fff"/><path d="M11 32h42" stroke="#CCFBF1" stroke-width="3"/><rect x="38" y="35" width="15" height="10" rx="5" fill="#CCFBF1"/><circle cx="44" cy="40" r="2.3" fill="#0F766E"/></svg></div><span>Sổ Chi Tiêu</span></div><span class="sync-pill" hidden></span><button class="hamb" type="button" data-act="menu" aria-label="Mở menu" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></header>
 <div class="app">
   <nav class="side" aria-label="Điều hướng">
-    <div class="brand"><div class="brand-mark"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="bgr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5EEAD4"/><stop offset=".55" stop-color="#14B8A6"/><stop offset="1" stop-color="#0F766E"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#bgr)"/><circle cx="42" cy="21" r="9.5" fill="#FDE68A"/><circle cx="42" cy="21" r="6.5" fill="#FBBF24"/><path d="M42 17.5v7" stroke="#B45309" stroke-width="2.2" stroke-linecap="round"/><rect x="11" y="24" width="42" height="28" rx="8" fill="#fff"/><path d="M11 32h42" stroke="#CCFBF1" stroke-width="3"/><rect x="38" y="35" width="15" height="10" rx="5" fill="#CCFBF1"/><circle cx="44" cy="40" r="2.3" fill="#0F766E"/></svg></div><div class="brand-name">Sổ Chi Tiêu</div></div>
+    <div class="brand"><div class="brand-mark"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="bgr2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5EEAD4"/><stop offset=".55" stop-color="#14B8A6"/><stop offset="1" stop-color="#0F766E"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#bgr2)"/><circle cx="42" cy="21" r="9.5" fill="#FDE68A"/><circle cx="42" cy="21" r="6.5" fill="#FBBF24"/><path d="M42 17.5v7" stroke="#B45309" stroke-width="2.2" stroke-linecap="round"/><rect x="11" y="24" width="42" height="28" rx="8" fill="#fff"/><path d="M11 32h42" stroke="#CCFBF1" stroke-width="3"/><rect x="38" y="35" width="15" height="10" rx="5" fill="#CCFBF1"/><circle cx="44" cy="40" r="2.3" fill="#0F766E"/></svg></div><div class="brand-name">Sổ Chi Tiêu</div></div>
     <div id="nav-side"></div>
     <button class="btn primary add-main" data-act="add-tx" type="button">+ Thêm giao dịch</button>
     <div class="side-foot" id="sync-state">Đang kết nối…</div>
@@ -1072,19 +1077,16 @@ function authErr(e) {
 function viewLogin() {
   const signup = S.authTab === "signup";
   return `<div class="auth-wrap"><div class="card auth-card">
-    <div class="brand" style="padding:0 0 14px"><div class="brand-mark"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="bgr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5EEAD4"/><stop offset=".55" stop-color="#14B8A6"/><stop offset="1" stop-color="#0F766E"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#bgr)"/><circle cx="42" cy="21" r="9.5" fill="#FDE68A"/><circle cx="42" cy="21" r="6.5" fill="#FBBF24"/><path d="M42 17.5v7" stroke="#B45309" stroke-width="2.2" stroke-linecap="round"/><rect x="11" y="24" width="42" height="28" rx="8" fill="#fff"/><path d="M11 32h42" stroke="#CCFBF1" stroke-width="3"/><rect x="38" y="35" width="15" height="10" rx="5" fill="#CCFBF1"/><circle cx="44" cy="40" r="2.3" fill="#0F766E"/></svg></div><div class="brand-name">Sổ Chi Tiêu</div></div>
+    <div class="brand" style="padding:0 0 14px"><div class="brand-mark"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="bgr3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5EEAD4"/><stop offset=".55" stop-color="#14B8A6"/><stop offset="1" stop-color="#0F766E"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#bgr3)"/><circle cx="42" cy="21" r="9.5" fill="#FDE68A"/><circle cx="42" cy="21" r="6.5" fill="#FBBF24"/><path d="M42 17.5v7" stroke="#B45309" stroke-width="2.2" stroke-linecap="round"/><rect x="11" y="24" width="42" height="28" rx="8" fill="#fff"/><path d="M11 32h42" stroke="#CCFBF1" stroke-width="3"/><rect x="38" y="35" width="15" height="10" rx="5" fill="#CCFBF1"/><circle cx="44" cy="40" r="2.3" fill="#0F766E"/></svg></div><div class="brand-name">Sổ Chi Tiêu</div></div>
     <h1 style="margin-bottom:6px">${signup ? "Tạo tài khoản" : "Đăng nhập"}</h1>
     <p class="hint" style="margin:0 0 14px">Đăng nhập cùng một tài khoản trên điện thoại và máy tính để sổ tự đồng bộ.</p>
     <div class="seg" style="width:100%;display:grid;grid-template-columns:1fr 1fr;margin-bottom:6px"><button type="button" data-act="auth-tab" data-v="login" aria-pressed="${!signup}">Đăng nhập</button><button type="button" data-act="auth-tab" data-v="signup" aria-pressed="${signup}">Tạo tài khoản</button></div>
     <form id="auth-form" novalidate>
       <label class="lbl" for="au-email">Email</label><input class="field" id="au-email" type="email" autocomplete="email" required value="${esc(S.authEmail || "")}">
-      <label class="lbl" for="au-pass">Mật khẩu</label><input class="field" id="au-pass" type="password" autocomplete="${signup ? "new-password" : "current-password"}" minlength="6" required placeholder="${signup ? "Ít nhất 6 ký tự" : ""}">
+      <label class="lbl" for="au-pass">Mật khẩu</label><div class="pw-wrap"><input class="field" id="au-pass" type="password" autocomplete="${signup ? "new-password" : "current-password"}" minlength="6" required placeholder="${signup ? "Ít nhất 6 ký tự" : ""}"><button type="button" class="pw-eye" data-act="pw-toggle" aria-label="Hiện mật khẩu" aria-pressed="false"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path class="pw-slash" d="M4 4l16 16"/></svg></button></div>
       <div class="err" id="au-err">${esc(S.authMsg || "")}</div>
       <button class="btn primary" type="submit" style="width:100%;height:44px;margin-top:6px" id="au-submit">${signup ? "Tạo tài khoản" : "Đăng nhập"}</button>
     </form>
-    ${signup ? "" : `<button class="btn ghost sm" type="button" data-act="auth-forgot" style="margin-top:8px">Quên mật khẩu?</button>`}
-    <div style="border-top:1px solid var(--line);margin:16px 0 12px"></div>
-    <button class="btn ghost sm" type="button" data-act="auth-skip">Dùng trên thiết bị này, không đồng bộ</button>
   </div></div>`;
 }
 document.addEventListener("submit", async e => {
@@ -1681,7 +1683,7 @@ function guessType(text, line) {
 }
 
 /* ---------- Biểu tượng thương hiệu ---------- */
-const BRAND_SVG = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="bgr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5EEAD4"/><stop offset=".55" stop-color="#14B8A6"/><stop offset="1" stop-color="#0F766E"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#bgr)"/><circle cx="42" cy="21" r="9.5" fill="#FDE68A"/><circle cx="42" cy="21" r="6.5" fill="#FBBF24"/><path d="M42 17.5v7" stroke="#B45309" stroke-width="2.2" stroke-linecap="round"/><rect x="11" y="24" width="42" height="28" rx="8" fill="#fff"/><path d="M11 32h42" stroke="#CCFBF1" stroke-width="3"/><rect x="38" y="35" width="15" height="10" rx="5" fill="#CCFBF1"/><circle cx="44" cy="40" r="2.3" fill="#0F766E"/></svg>`;
+const BRAND_SVG = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="bgr4" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5EEAD4"/><stop offset=".55" stop-color="#14B8A6"/><stop offset="1" stop-color="#0F766E"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#bgr4)"/><circle cx="42" cy="21" r="9.5" fill="#FDE68A"/><circle cx="42" cy="21" r="6.5" fill="#FBBF24"/><path d="M42 17.5v7" stroke="#B45309" stroke-width="2.2" stroke-linecap="round"/><rect x="11" y="24" width="42" height="28" rx="8" fill="#fff"/><path d="M11 32h42" stroke="#CCFBF1" stroke-width="3"/><rect x="38" y="35" width="15" height="10" rx="5" fill="#CCFBF1"/><circle cx="44" cy="40" r="2.3" fill="#0F766E"/></svg>`;
 
 /* ---------- Sắp xếp mục: dùng chung cho mọi trang ---------- */
 const PAGE_SECTIONS = {
@@ -1884,12 +1886,10 @@ function loanTilesHtml() {
   const all = loans();
   const owe = all.filter(l => l.kind === "borrow").reduce((a, l) => a + loanRemaining(l), 0);
   const recv = all.filter(l => l.kind === "lend").reduce((a, l) => a + loanRemaining(l), 0);
-  const attn = all.filter(l => { const d = loanDue(l); return d && (d[0] === "crit" || d[0] === "warn"); });
   const openN = k => all.filter(l => l.kind === k && loanLeft(l) > 0).length;
-  return `<div class="grid tiles tiles3">
+  return `<div class="grid tiles" style="grid-template-columns:1fr 1fr">
     <div class="card tile exp">${tileK("exp", "var(--c8)", "Đang nợ (gồm lãi)")}<div class="v">${fmt(owe)}</div><div class="s">${openN("borrow")} khoản đi vay</div></div>
-    <div class="card tile net">${tileK("inc", "var(--c1)", "Cho vay (gồm lãi)")}<div class="v">${fmt(recv)}</div><div class="s">${openN("lend")} khoản cho vay</div></div>
-    <div class="card tile">${tileK("net", attn.length ? "var(--crit)" : "var(--good)", "Cần chú ý")}<div class="v">${attn.length}</div><div class="s">${attn.length ? "quá hạn / sắp đến kỳ" : "Không có khoản sắp hạn"}</div></div></div>`;
+    <div class="card tile net">${tileK("inc", "var(--c1)", "Cho vay (gồm lãi)")}<div class="v">${fmt(recv)}</div><div class="s">${openN("lend")} khoản cho vay</div></div></div>`;
 }
 function loanListHtml() {
   const all = loans(), tab = S.loanTab || "borrow";
@@ -3026,6 +3026,7 @@ const actions = {
   "auth-tab": el => { S.authTab = el.dataset.v; S.authMsg = ""; render(); },
   "auth-skip": () => { S.skipLogin = true; try { localStorage.setItem(SKIP_KEY, "1"); } catch (e) {} render(); },
   "auth-show": () => { S.skipLogin = false; try { localStorage.removeItem(SKIP_KEY); } catch (e) {} render(); },
+  "pw-toggle": el => { const i = $("#au-pass"); if (!i) return; const show = i.type === "password"; i.type = show ? "text" : "password"; el.setAttribute("aria-pressed", show); el.setAttribute("aria-label", show ? "Ẩn mật khẩu" : "Hiện mật khẩu"); i.focus(); },
   "auth-forgot": async () => {
     const email = ($("#au-email").value || "").trim(); const err = $("#au-err");
     if (!/^\S+@\S+\.\S+$/.test(email)) { err.textContent = "Nhập email của bạn vào ô Email trước."; return; }
