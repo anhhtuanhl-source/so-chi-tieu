@@ -751,6 +751,7 @@ const shiftMonth = (key, delta) => { let [y, m] = key.split("-").map(Number); m 
 const monthLabel = key => { const [y, m] = key.split("-"); return `Tháng ${+m}/${y}`; };
 const monthShort = key => { const [y, m] = key.split("-"); return `T${+m}/${y.slice(2)}`; };
 const DOW = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+const isoDay = ts => { const x = new Date(ts); return `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}`; };
 const dayLabel = ds => { const [y, m, d] = ds.split("-").map(Number); const dt = new Date(y, m - 1, d); const t = todayStr(); return (ds === t ? "Hôm nay" : DOW[dt.getDay()]) + `, ${pad(d)}/${pad(m)}`; };
 
 function defaults() {
@@ -2372,7 +2373,7 @@ function renderNav() {
   const html = VIEWS.map(([k, l]) => `<button class="nav-btn" type="button" data-act="nav" data-v="${k}" ${S.view === k ? 'aria-current="page"' : ""}>${ICONS[k]}<span>${l}</span></button>`).join("");
   $("#nav-side").innerHTML = html;
 
-  $("#sync-state").textContent = S.mode === "sync" ? "Đồng bộ với tài khoản " + (S.email || "") : S.mode === "loading" ? "Đang tải dữ liệu…" : "Dữ liệu lưu riêng trên thiết bị này. " + (S.lastBackup ? "Sao lưu gần nhất: " + new Date(S.lastBackup).toLocaleDateString("vi-VN") + "." : "Chưa sao lưu lần nào.");
+  $("#sync-state").textContent = S.mode === "sync" ? "Đồng bộ với tài khoản " + (S.email || "") : S.mode === "loading" ? "Đang tải dữ liệu…" : "Dữ liệu lưu riêng trên thiết bị này. " + (S.lastBackup ? "Sao lưu gần nhất: " + fmtDate(isoDay(S.lastBackup)) + "." : "Chưa sao lưu lần nào.");
 }
 
 function topbar(title, withMonth = true, extra = "") {
@@ -2787,7 +2788,7 @@ function viewSettings() {
       <div class="card"><div class="card-h"><h2>Sao lưu và chuyển thiết bị</h2></div>
       <p class="hint" style="margin:-4px 0 10px">${S.mode === "sync" ? "Dữ liệu đã được lưu trên tài khoản. Bạn vẫn có thể tải thêm một bản sao lưu để cất giữ riêng." : "Dữ liệu chỉ lưu trên trình duyệt của thiết bị này. Hãy tải file sao lưu định kỳ. Để dùng trên thiết bị khác, mở website ở đó rồi chọn Khôi phục từ file."}</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" type="button" data-act="backup">Tải file sao lưu</button><button class="btn" type="button" data-act="restore">Khôi phục từ file</button><input type="file" id="restore-file" accept=".json,application/json" style="display:none"></div>
-      <p class="hint" style="margin:8px 0 12px">${S.lastBackup ? "Sao lưu gần nhất: " + new Date(S.lastBackup).toLocaleString("vi-VN") : "Chưa sao lưu lần nào."}</p>
+      <p class="hint" style="margin:8px 0 12px">${S.lastBackup ? "Sao lưu gần nhất: " + fmtDate(isoDay(S.lastBackup)) + " " + new Date(S.lastBackup).toTimeString().slice(0, 5) : "Chưa sao lưu lần nào."}</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" data-act="csv-file">Tải file Excel (CSV)</button><button class="btn" type="button" data-act="export">Sao chép CSV</button></div><textarea id="csv-out" class="field" style="display:none;height:120px;margin-top:10px;padding:8px;font-size:12px" readonly aria-label="Dữ liệu CSV"></textarea>
 </div></div>
     <div class="stack"><div class="card"><div class="card-h"><h2>Danh mục chi</h2><button class="btn sm" type="button" data-act="add-cat" data-type="expense">+ Thêm</button></div>${cRows("expense")}</div>
@@ -3060,7 +3061,7 @@ document.addEventListener("change", e => {
     let d; try { d = JSON.parse(txt); } catch (err) { toast("File không đúng định dạng sao lưu."); return; }
     if (!d || d.app !== "so-chi-tieu" || !d.settings || typeof d.months !== "object") { toast("Đây không phải file sao lưu của Sổ Chi Tiêu."); return; }
     const n = Object.values(d.months).reduce((a, m) => a + (Array.isArray(m) ? m.length : 0), 0);
-    confirmBox("Khôi phục dữ liệu?", `File sao lưu ngày ${esc(new Date(d.exportedAt).toLocaleDateString("vi-VN"))} có ${n} giao dịch. Dữ liệu hiện có trên thiết bị này sẽ được thay thế hoàn toàn.`, "Khôi phục", () => {
+    confirmBox("Khôi phục dữ liệu?", `File sao lưu ngày ${esc(fmtDate(isoDay(d.exportedAt)))} có ${n} giao dịch. Dữ liệu hiện có trên thiết bị này sẽ được thay thế hoàn toàn.`, "Khôi phục", () => {
       S.settings = normalize(d.settings); S.months = d.months; S.lastBackup = Date.now(); saveSettings(); saveMonth(); render(); toast(`Đã khôi phục ${n} giao dịch`);
     });
   });

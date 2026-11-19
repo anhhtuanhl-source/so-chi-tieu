@@ -1,5 +1,5 @@
 // Bộ nhớ đệm để website mở được cả khi không có mạng.
-const CACHE = "so-chi-tieu-v7";
+const CACHE = "so-chi-tieu-v8";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
@@ -13,18 +13,15 @@ self.addEventListener("fetch", e => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (req.mode === "navigate") {
-    // Mở ngay bằng bản đã lưu (nhanh như ứng dụng), đồng thời tải bản mới ở nền cho lần mở sau.
+    // Luôn lấy bản mới nhất khi có mạng (chờ tối đa 3 giây), mất mạng thì mở bản đã lưu.
     e.respondWith(caches.open(CACHE).then(async c => {
+      const net = fetch(req, { cache: "no-store" }).then(res => { if (res.ok) c.put("./index.html", res.clone()); return res; });
+      const timeout = new Promise(r => setTimeout(r, 3000));
+      try {
+        const res = await Promise.race([net, timeout.then(() => null)]);
+        if (res) return res;
+      } catch (_) {}
       const hit = await c.match("./index.html");
-      const net = fetch(req).then(async res => {
-        if (res.ok) {
-          const fresh = await res.clone().text(), old = hit ? await hit.clone().text() : null;
-          await c.put("./index.html", res.clone());
-          if (old && old !== fresh) (await self.clients.matchAll({ includeUncontrolled: true })).forEach(cl => cl.postMessage("update-ready"));
-        }
-        return res;
-      }).catch(() => hit);
-      if (hit) e.waitUntil(net.catch(() => {}));
       return hit || net;
     }));
     return;
