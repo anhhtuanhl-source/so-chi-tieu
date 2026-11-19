@@ -241,7 +241,8 @@ table.data th { color: var(--muted); font-weight: 500; font-size: 12.5px; }
 .toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 16px; border-radius: 10px; font-size: 13.5px; z-index: 60; display: none; max-width: calc(100% - 32px); }
 .toast.show { display: block; }
 
-.tabbar, .fab { display: none; }
+.tabbar, .fab, .appbar { display: none; }
+.fbmenu { display: none; }
 .mp-wrap { position: relative; }
 .tiles3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 720px) { .tiles3 { grid-template-columns: 1fr 1fr; } .tiles3 > .hero { grid-column: 1 / -1; } .mp-pop { z-index: 50; } }
@@ -287,7 +288,7 @@ table.data th { color: var(--muted); font-weight: 500; font-size: 12.5px; }
 .sync-pill.off::before { background: var(--crit); }
 .sync-pill[hidden] { display: none; }
 .auth-wrap { display: grid; place-items: center; min-height: calc(100vh - 140px); }
-body.auth-mode .side, body.auth-mode .tabbar, body.auth-mode .fab { display: none !important; }
+body.auth-mode .side, body.auth-mode .tabbar, body.auth-mode .fab, body.auth-mode .appbar { display: none !important; }
 body.auth-mode .app { grid-template-columns: 1fr; }
 body.auth-mode .main { max-width: none; padding: 24px 16px; }
 body.auth-mode .auth-wrap { min-height: calc(100vh - 48px); }
@@ -301,14 +302,43 @@ body.auth-mode .auth-wrap { min-height: calc(100vh - 48px); }
 @media (max-width: 720px) {
   .app { grid-template-columns: 1fr; }
   .side { display: none; }
-  .main { padding: 16px 16px 120px; }
-  .mp-pop { position: fixed; left: 16px; right: 16px; top: auto; bottom: calc(84px + env(safe-area-inset-bottom)); width: auto; }
+  .main { padding: 14px 16px 100px; }
+  .mp-pop { position: fixed; left: 16px; right: 16px; top: auto; bottom: calc(16px + env(safe-area-inset-bottom)); width: auto; }
   .loan-row { grid-template-columns: 36px minmax(0, 1fr); }
   .loan-row > div:last-child { grid-column: 2; text-align: left !important; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .tabbar { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); z-index: 40; }
-  .tabbar .nav-btn { flex-direction: column; gap: 2px; font-size: 11px; padding: 6px 2px; justify-content: center; align-items: center; text-align: center; }
-  .tabbar .nav-btn[aria-current="page"] { background: none; }
-  .fab { display: grid; place-items: center; position: fixed; right: 18px; bottom: calc(76px + env(safe-area-inset-bottom)); width: 56px; height: 56px; border-radius: 18px; border: 0; background: var(--accent); color: var(--accent-ink); font-size: 28px; box-shadow: 0 8px 24px rgba(15,107,92,.35); z-index: 41; cursor: pointer; }
+  .appbar { display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 40; padding: calc(8px + env(safe-area-inset-top)) 12px 8px 16px; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+  .brand-sm { display: flex; align-items: center; gap: 8px; font: 600 16px var(--font-display); margin-right: auto; }
+  .brand-sm .brand-mark { width: 28px; height: 28px; border-radius: 8px; font-size: 14px; }
+  .hamb { width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--surface-2); color: var(--ink); display: grid; place-items: center; cursor: pointer; }
+  .hamb:active { transform: scale(.95); }
+  .topbar .sync-pill { display: none !important; }
+  .fbmenu { display: block; position: fixed; inset: 0; z-index: 60; background: var(--bg); overflow-y: auto; transform: translateX(100%); visibility: hidden; transition: transform .25s ease, visibility 0s linear .25s; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+  .fbmenu.open { transform: none; visibility: visible; transition: transform .25s ease; }
+  body.menu-open { overflow: hidden; }
+  .fbm-head { display: flex; align-items: center; justify-content: space-between; padding: calc(12px + env(safe-area-inset-top)) 16px 8px; position: sticky; top: 0; background: var(--bg); z-index: 1; }
+  .fbm-head h1 { font-size: 24px; }
+  .fbm-close { width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--surface-2); color: var(--ink); display: grid; place-items: center; cursor: pointer; }
+  .fbm-body { padding: 0 16px; display: flex; flex-direction: column; gap: 10px; }
+  .fbprofile { display: flex; align-items: center; gap: 12px; background: var(--surface); border-radius: 14px; padding: 12px; box-shadow: var(--shadow); border: 1px solid var(--line); }
+  .fbprofile > span:nth-child(2) { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .fbprofile b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fbprofile small, .fbrow small { display: block; color: var(--muted); font-size: 12.5px; font-weight: 400; }
+  .avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--hero-a), var(--hero-b)); color: #fff; display: grid; place-items: center; font: 600 18px var(--font-display); flex: none; }
+  .fbsec { font-weight: 600; color: var(--ink-2); font-size: 14px; margin-top: 8px; }
+  .fbgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .fbtile { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 12px; box-shadow: var(--shadow); cursor: pointer; min-height: 112px; }
+  .fbtile:active { transform: scale(.98); }
+  .fbtile[aria-current="page"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .fbicon { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: color-mix(in srgb, var(--cc) 16%, transparent); color: var(--cc); flex: none; }
+  .fbicon svg { width: 20px; height: 20px; }
+  .fbicon.sm { width: 34px; height: 34px; border-radius: 50%; }
+  .fbt { font-weight: 600; font-size: 15px; }
+  .fbs { font-size: 12.5px; color: var(--muted); margin-top: -4px; }
+  .fblist { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+  .fbrow { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border: 0; border-top: 1px solid var(--line); background: none; text-align: left; cursor: pointer; font-weight: 600; }
+  .fbrow:first-child { border-top: 0; }
+  .fbrow:active { background: var(--surface-2); }
+  .fab { display: grid; place-items: center; position: fixed; right: 18px; bottom: calc(20px + env(safe-area-inset-bottom)); width: 56px; height: 56px; border-radius: 18px; border: 0; background: var(--accent); color: var(--accent-ink); font-size: 28px; box-shadow: 0 8px 24px rgba(15,107,92,.35); z-index: 41; cursor: pointer; }
   .topbar .add-top { display: none; }
   .tile .v { font-size: 18px; }
   .set-row, .set-head { grid-template-columns: minmax(0, 1fr) 120px auto; }
@@ -324,6 +354,7 @@ body.auth-mode .auth-wrap { min-height: calc(100vh - 48px); }
 </style>
 </head>
 <body>
+<header class="appbar" id="appbar"><div class="brand-sm"><div class="brand-mark">₫</div><span>Sổ Chi Tiêu</span></div><span class="sync-pill" hidden></span><button class="hamb" type="button" data-act="menu" aria-label="Mở menu" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></header>
 <div class="app">
   <nav class="side" aria-label="Điều hướng">
     <div class="brand"><div class="brand-mark">₫</div><div class="brand-name">Sổ Chi Tiêu</div></div>
@@ -333,7 +364,7 @@ body.auth-mode .auth-wrap { min-height: calc(100vh - 48px); }
   </nav>
   <main class="main" id="main" aria-live="polite"></main>
 </div>
-<nav class="tabbar" id="nav-bottom" aria-label="Điều hướng"></nav>
+<div class="fbmenu" id="fbmenu" role="dialog" aria-modal="true" aria-label="Menu"></div>
 <button class="fab" data-act="add-tx" type="button" aria-label="Thêm giao dịch">+</button>
 <div class="scrim" id="scrim"><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
 <div class="toast" id="toast" role="status"></div>
@@ -361,16 +392,17 @@ function fmtShort(n) {
   return s + Math.round(a);
 }
 function parseAmount(raw) {
-  let s = String(raw || "").trim().toLowerCase().replace(/\s|₫|đ|vnd/g, "");
-  if (!s) return 0;
-  let mult = 1;
-  if (/(triệu|tr|m)$/.test(s)) { mult = 1e6; s = s.replace(/(triệu|tr|m)$/, ""); }
-  else if (/(nghìn|ngàn|k)$/.test(s)) { mult = 1e3; s = s.replace(/(nghìn|ngàn|k)$/, ""); }
-  else if (/(tỷ|ty|b)$/.test(s)) { mult = 1e9; s = s.replace(/(tỷ|ty|b)$/, ""); }
-  let v;
-  if (mult > 1) v = parseFloat(s.replace(",", ".")) * mult;
-  else v = parseInt(s.replace(/[.,]/g, ""), 10);
-  return Number.isFinite(v) && v > 0 ? Math.round(v) : 0;
+  const digits = String(raw || "").replace(/\D/g, "");
+  const v = digits ? parseInt(digits, 10) : 0;
+  return Number.isFinite(v) && v > 0 ? v : 0;
+}
+/* Định dạng ô tiền khi đang gõ: chỉ giữ chữ số, tự thêm dấu chấm hàng nghìn */
+function formatAmountInput(inp) {
+  const raw = inp.value, digits = raw.replace(/\D/g, "");
+  const caretFromEnd = raw.length - (inp.selectionStart ?? raw.length);
+  inp.value = digits ? fmtNum(parseInt(digits, 10)) : "";
+  const p = Math.max(0, inp.value.length - caretFromEnd);
+  try { inp.setSelectionRange(p, p); } catch (e) {}
 }
 const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
 const shiftMonth = (key, delta) => { let [y, m] = key.split("-").map(Number); m += delta; while (m < 1) { m += 12; y--; } while (m > 12) { m -= 12; y++; } return `${y}-${pad(m)}`; };
@@ -875,14 +907,9 @@ function vRow(r) {
 }
 
 /* ---------- ô nhập tiền dùng chung ---------- */
-function wireAmount(inp, hint, idle) {
+function wireAmount(inp) {
   if (!inp) return;
-  inp.addEventListener("input", () => {
-    const raw = inp.value;
-    if (/^[\d.]*$/.test(raw) && raw) { const n = parseInt(raw.replace(/\./g, ""), 10); if (n) { const pos = raw.length - inp.selectionStart; inp.value = fmtNum(n); const p = Math.max(0, inp.value.length - pos); try { inp.setSelectionRange(p, p); } catch (e) {} } }
-    const v = parseAmount(inp.value);
-    if (hint) hint.textContent = v ? "= " + fmt(v) : (idle || "");
-  });
+  inp.addEventListener("input", () => formatAmountInput(inp));
 }
 const walletOpts = (sel, allowNone) => (allowNone ? `<option value="" ${!sel ? "selected" : ""}>Không ghi vào ví (khoản cũ)</option>` : "") + S.settings.wallets.map(w => `<option value="${esc(w.id)}" ${sel === w.id ? "selected" : ""}>${esc(w.name)}</option>`).join("");
 const swatches = sel => `<div class="chips">${[1, 2, 3, 4, 5, 6, 7, 8].map(n => `<button type="button" class="swatch" data-color="${n}" style="--cc:var(--c${n})" aria-pressed="${sel === n}" aria-label="Màu ${n}"></button>`).join("")}</div>`;
@@ -949,15 +976,14 @@ function openFundForm(f) {
   openModal(`<h2>${f ? "Sửa quỹ" : "Tạo quỹ tiết kiệm"}</h2>
     ${f ? "" : `<label>Gợi ý</label><div class="chips">${FUND_TEMPLATES.map(n => `<button type="button" class="chip" data-tpl="${esc(n)}">${esc(n)}</button>`).join("")}</div>`}
     <label for="fd-name">Tên quỹ</label><input class="field" id="fd-name" maxlength="40" value="${esc(FM.name)}" placeholder="Ví dụ: Du lịch Đà Lạt">
-    <div class="row2"><div><label for="fd-target">Mục tiêu (không bắt buộc)</label><input class="field r" id="fd-target" inputmode="decimal" value="${FM.target ? fmtNum(FM.target) : ""}" placeholder="vd 20tr"></div>
+    <div class="row2"><div><label for="fd-target">Mục tiêu (không bắt buộc)</label><input class="field r" id="fd-target" inputmode="numeric" value="${FM.target ? fmtNum(FM.target) : ""}" placeholder="vd 20.000.000"></div>
     <div><label for="fd-deadline">Hạn hoàn thành</label><input class="field" id="fd-deadline" type="date" value="${esc(FM.deadline || "")}"></div></div>
-    <div class="hint" id="fd-target-h"></div>
-    <div class="row2"><div><label for="fd-plan">Kế hoạch nạp mỗi tháng</label><input class="field r" id="fd-plan" inputmode="decimal" value="${FM.plan ? fmtNum(FM.plan) : ""}" placeholder="vd 2tr"></div>
+    <div class="row2"><div><label for="fd-plan">Kế hoạch nạp mỗi tháng</label><input class="field r" id="fd-plan" inputmode="numeric" value="${FM.plan ? fmtNum(FM.plan) : ""}" placeholder="vd 2.000.000"></div>
     <div><label for="fd-wallet">Ví nạp mặc định</label><select class="field" id="fd-wallet">${walletOpts(FM.walletId)}</select></div></div>
     <label>Màu</label>${swatches(FM.color)}
     <div class="err" id="fd-err"></div>
     <div class="modal-actions"><span class="sp"></span><button class="btn" type="button" id="fd-cancel">Hủy</button><button class="btn primary" type="button" id="fd-save">${f ? "Lưu" : "Tạo quỹ"}</button></div>`);
-  wireAmount($("#fd-target"), $("#fd-target-h")); wireAmount($("#fd-plan"));
+  wireAmount($("#fd-target")); wireAmount($("#fd-plan"));
   $("#modal").querySelectorAll("[data-tpl]").forEach(b => b.onclick = () => { $("#fd-name").value = b.dataset.tpl; $("#fd-name").focus(); });
   $("#modal").querySelectorAll("[data-color]").forEach(b => b.onclick = () => { FM.color = +b.dataset.color; $("#modal").querySelectorAll("[data-color]").forEach(x => x.setAttribute("aria-pressed", x === b)); });
   $("#fd-cancel").onclick = closeModal;
@@ -977,8 +1003,7 @@ function openFundMoney(id, withdraw) {
   const bal = fundBal(f), wb = walletBalances();
   openModal(`<h2>${withdraw ? "Rút từ quỹ" : "Nạp vào quỹ"} ${esc(f.name)}</h2>
     <p class="hint" style="margin:-8px 0 0">Số dư quỹ: <b class="num">${fmt(bal)}</b>${f.target && !withdraw ? ` · còn thiếu ${fmt(Math.max(0, f.target - bal))} để đạt mục tiêu` : ""}</p>
-    <label for="fm-amt">Số tiền</label><input class="amount-in" id="fm-amt" inputmode="decimal" autocomplete="off" placeholder="0">
-    <div class="hint" id="fm-hint" style="margin-top:4px">Gõ nhanh: 500k, 2tr</div>
+    <label for="fm-amt">Số tiền</label><input class="amount-in" id="fm-amt" inputmode="numeric" autocomplete="off" placeholder="0">
     ${!withdraw && f.plan ? `<div class="chips" style="margin-top:8px"><button type="button" class="chip" data-fill="${f.plan}">Theo kế hoạch ${fmtShort(f.plan)}</button>${f.target && f.target > bal ? `<button type="button" class="chip" data-fill="${f.target - bal}">Nạp đủ mục tiêu</button>` : ""}</div>` : withdraw ? `<div class="chips" style="margin-top:8px"><button type="button" class="chip" data-fill="${bal}">Rút toàn bộ</button></div>` : ""}
     <div class="row2"><div><label for="fm-w">${withdraw ? "Rút về ví" : "Lấy tiền từ ví"}</label><select class="field" id="fm-w">${walletOpts(f.walletId || S.settings.wallets[0]?.id)}</select></div>
     <div><label for="fm-date">Ngày</label><input class="field" type="date" id="fm-date" value="${todayStr()}"></div></div>
@@ -988,7 +1013,7 @@ function openFundMoney(id, withdraw) {
     <div class="modal-actions"><span class="sp"></span><button class="btn" type="button" id="fm-cancel">Hủy</button><button class="btn primary" type="button" id="fm-save">${withdraw ? "Rút tiền" : "Nạp tiền"}</button></div>`);
   const showWb = () => { const w = $("#fm-w").value; $("#fm-wb").textContent = "Số dư ví này: " + fmt(wb[w] || 0); };
   showWb(); $("#fm-w").onchange = showWb;
-  wireAmount($("#fm-amt"), $("#fm-hint"), "Gõ nhanh: 500k, 2tr");
+  wireAmount($("#fm-amt"));
   $("#modal").querySelectorAll("[data-fill]").forEach(b => b.onclick = () => { $("#fm-amt").value = fmtNum(+b.dataset.fill); $("#fm-amt").dispatchEvent(new Event("input")); });
   $("#fm-cancel").onclick = closeModal;
   const go = () => {
@@ -1073,8 +1098,7 @@ function openLoanForm(l) {
     openModal(`<h2>${LM.isEdit ? "Sửa khoản vay" : "Thêm khoản vay"}</h2>
       <div class="seg" style="width:100%;display:grid;grid-template-columns:1fr 1fr"><button type="button" data-kind="borrow" aria-pressed="${b}">Tôi đi vay</button><button type="button" data-kind="lend" aria-pressed="${!b}">Tôi cho vay</button></div>
       <label for="ln-person">${b ? "Vay của ai" : "Cho ai vay"}</label><input class="field" id="ln-person" maxlength="40" value="${esc(LM.person)}" placeholder="${b ? "Ví dụ: Anh Nam, Ngân hàng ACB" : "Ví dụ: Chị Lan"}">
-      <label for="ln-amt">Số tiền</label><input class="amount-in" id="ln-amt" inputmode="decimal" autocomplete="off" placeholder="0" value="${LM.amount ? fmtNum(LM.amount) : ""}">
-      <div class="hint" id="ln-hint" style="margin-top:4px">Gõ nhanh: 500k, 5tr</div>
+      <label for="ln-amt">Số tiền</label><input class="amount-in" id="ln-amt" inputmode="numeric" autocomplete="off" placeholder="0" value="${LM.amount ? fmtNum(LM.amount) : ""}">
       <div class="row2"><div><label for="ln-date">Ngày ${b ? "vay" : "cho vay"}</label><input class="field" type="date" id="ln-date" value="${esc(LM.date)}"></div>
       <div><label for="ln-due">Hạn trả (không bắt buộc)</label><input class="field" type="date" id="ln-due" value="${esc(LM.due || "")}"></div></div>
       <div class="row2"><div><label for="ln-rate">Lãi suất %/năm</label><input class="field r" id="ln-rate" inputmode="decimal" value="${LM.rate ? String(LM.rate).replace(".", ",") : ""}" placeholder="0 nếu không lãi"></div>
@@ -1082,7 +1106,7 @@ function openLoanForm(l) {
       <label for="ln-note">Ghi chú</label><input class="field" id="ln-note" maxlength="140" value="${esc(LM.note || "")}" placeholder="Không bắt buộc">
       <div class="err" id="ln-err"></div>
       <div class="modal-actions"><span class="sp"></span><button class="btn" type="button" id="ln-cancel">Hủy</button><button class="btn primary" type="button" id="ln-save">${LM.isEdit ? "Lưu" : "Thêm"}</button></div>`);
-    wireAmount($("#ln-amt"), $("#ln-hint"), "Gõ nhanh: 500k, 5tr");
+    wireAmount($("#ln-amt"));
     $("#modal").querySelectorAll("[data-kind]").forEach(btn => btn.onclick = () => { collectLoan(); LM.kind = btn.dataset.kind; draw(); });
     $("#ln-cancel").onclick = closeModal;
     $("#ln-save").onclick = () => {
@@ -1116,17 +1140,16 @@ function openLoanPay(id) {
   const b = l.kind === "borrow", left = loanLeft(l), est = loanInterestEst(l);
   openModal(`<h2>${b ? "Trả nợ cho" : "Thu nợ từ"} ${esc(l.person)}</h2>
     <p class="hint" style="margin:-8px 0 0">Còn ${b ? "phải trả" : "phải thu"}: <b class="num">${fmt(left)}</b></p>
-    <label for="lp-amt">Tiền gốc</label><input class="amount-in" id="lp-amt" inputmode="decimal" autocomplete="off" placeholder="0">
-    <div class="hint" id="lp-hint" style="margin-top:4px"></div>
+    <label for="lp-amt">Tiền gốc</label><input class="amount-in" id="lp-amt" inputmode="numeric" autocomplete="off" placeholder="0">
     <div class="chips" style="margin-top:8px"><button type="button" class="chip" data-fill="${left}">${b ? "Trả hết" : "Thu hết"} ${fmtShort(left)}</button>${left >= 2000 ? `<button type="button" class="chip" data-fill="${Math.round(left / 2000) * 1000}">Một nửa</button>` : ""}</div>
-    <label for="lp-int">Tiền lãi (không bắt buộc)</label><input class="field r" id="lp-int" inputmode="decimal" placeholder="0">
+    <label for="lp-int">Tiền lãi (không bắt buộc)</label><input class="field r" id="lp-int" inputmode="numeric" placeholder="0">
     ${est ? `<div class="hint" style="margin-top:4px">Lãi ước tính đến hôm nay: <b class="num">${fmt(est)}</b> <button type="button" class="btn sm ghost" id="lp-est">Dùng số này</button></div>` : ""}
     <div class="row2"><div><label for="lp-w">${b ? "Trả từ ví" : "Nhận vào ví"}</label><select class="field" id="lp-w">${walletOpts(l.walletId || S.settings.wallets[0]?.id, true)}</select></div>
     <div><label for="lp-date">Ngày</label><input class="field" type="date" id="lp-date" value="${todayStr()}"></div></div>
     <label for="lp-note">Ghi chú</label><input class="field" id="lp-note" maxlength="140" placeholder="Không bắt buộc">
     <div class="err" id="lp-err"></div>
     <div class="modal-actions"><span class="sp"></span><button class="btn" type="button" id="lp-cancel">Hủy</button><button class="btn primary" type="button" id="lp-save">Lưu</button></div>`);
-  wireAmount($("#lp-amt"), $("#lp-hint")); wireAmount($("#lp-int"));
+  wireAmount($("#lp-amt")); wireAmount($("#lp-int"));
   $("#modal").querySelectorAll("[data-fill]").forEach(x => x.onclick = () => { $("#lp-amt").value = fmtNum(+x.dataset.fill); $("#lp-amt").dispatchEvent(new Event("input")); });
   if ($("#lp-est")) $("#lp-est").onclick = () => { $("#lp-int").value = fmtNum(est); };
   $("#lp-cancel").onclick = closeModal;
@@ -1185,6 +1208,51 @@ function savingsLoanCard(walletTotal) {
   </div></div>`;
 }
 
+/* ---------- Menu 3 gạch (điện thoại) ---------- */
+const VIEW_COLORS = { "tong-quan": 1, "giao-dich": 3, "ngan-sach": 4, "tiet-kiem": 6, "vay": 8, "bao-cao": 7, "cai-dat": 0 };
+function menuStat(k) {
+  if (!S.settings) return "";
+  const mk = todayStr().slice(0, 7);
+  if (k === "tong-quan") { const b = Object.values(walletBalances()).reduce((a, x) => a + x, 0); return "Số dư " + fmtShort(b); }
+  if (k === "giao-dich") return monthTx(mk).length + " giao dịch tháng này";
+  if (k === "ngan-sach") { const n = Object.values(S.settings.budgets).filter(v => v > 0).length; return n ? n + " danh mục có hạn mức" : "Chưa đặt hạn mức"; }
+  if (k === "tiet-kiem") { const t = funds().reduce((a, f) => a + fundBal(f), 0); return funds().length ? funds().length + " quỹ · " + fmtShort(t) : "Tạo quỹ đầu tiên"; }
+  if (k === "vay") { const o = loans().filter(l => l.kind === "borrow").reduce((a, l) => a + loanLeft(l), 0); const late = loans().filter(l => { const d = loanDue(l); return d && d[0] === "crit"; }).length; return late ? late + " khoản quá hạn" : o ? "Đang nợ " + fmtShort(o) : "Không có nợ"; }
+  if (k === "bao-cao") return "Thu chi theo tháng";
+  if (k === "cai-dat") return "Ví, danh mục, sao lưu";
+  return "";
+}
+function openMenu() {
+  const m = $("#fbmenu");
+  const who = S.mode === "sync" ? (S.email || "Tài khoản") : "Khách";
+  const sub = S.mode === "sync" ? "Đồng bộ trên mọi thiết bị" : "Dữ liệu lưu trên thiết bị này";
+  const tiles = VIEWS.filter(([k]) => k !== "cai-dat").map(([k, l]) => `<button type="button" class="fbtile" data-act="menu-nav" data-v="${k}" ${S.view === k ? 'aria-current="page"' : ""}>
+      <span class="fbicon" style="--cc:var(--c${VIEW_COLORS[k]})">${ICONS[k]}</span><span class="fbt">${l}</span><span class="fbs">${esc(menuStat(k))}</span></button>`).join("");
+  const rows = [
+    `<button type="button" class="fbrow" data-act="menu-nav" data-v="cai-dat"><span class="fbicon sm" style="--cc:var(--c0)">${ICONS["cai-dat"]}</span><span>Cài đặt<small>${esc(menuStat("cai-dat"))}</small></span></button>`,
+    `<button type="button" class="fbrow" data-act="menu-backup"><span class="fbicon sm" style="--cc:var(--c1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></span><span>Tải file sao lưu<small>Lưu một bản dữ liệu về máy</small></span></button>`,
+    S.mode === "sync"
+      ? `<button type="button" class="fbrow" data-act="menu-signout"><span class="fbicon sm" style="--cc:var(--c8)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></svg></span><span>Đăng xuất</span></button>`
+      : (S.auth !== "none" ? `<button type="button" class="fbrow" data-act="menu-login"><span class="fbicon sm" style="--cc:var(--c3)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4M14 8l4 4-4 4M18 12H8"/></svg></span><span>Đăng nhập để đồng bộ<small>Dùng chung sổ trên điện thoại và máy tính</small></span></button>` : "")
+  ].join("");
+  m.innerHTML = `<div class="fbm-head"><h1>Menu</h1><button type="button" class="fbm-close" data-act="menu-close" aria-label="Đóng menu"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <div class="fbm-body">
+      <div class="fbprofile"><span class="avatar">${esc(who.charAt(0).toUpperCase())}</span><span><b>${esc(who)}</b><small>${sub}</small></span><span class="sync-pill" hidden></span></div>
+      <div class="fbsec">Lối tắt</div>
+      <div class="fbgrid">${tiles}</div>
+      <div class="fbsec">Tài khoản và dữ liệu</div>
+      <div class="fblist">${rows}</div>
+    </div>`;
+  m.classList.add("open"); document.body.classList.add("menu-open");
+  $("#appbar .hamb").setAttribute("aria-expanded", "true");
+  renderSyncState();
+}
+function closeMenu() {
+  const m = $("#fbmenu"); if (!m.classList.contains("open")) return;
+  m.classList.remove("open"); document.body.classList.remove("menu-open");
+  $("#appbar .hamb").setAttribute("aria-expanded", "false");
+}
+
 /* ---------- Menu "Khác" trên điện thoại ---------- */
 function openMoreMenu() {
   const items = [["ngan-sach", "Ngân sách"], ["bao-cao", "Báo cáo"], ["cai-dat", "Cài đặt"]];
@@ -1211,8 +1279,7 @@ const MORE_VIEWS = ["ngan-sach", "bao-cao", "cai-dat"];
 function renderNav() {
   const html = VIEWS.map(([k, l]) => `<button class="nav-btn" type="button" data-act="nav" data-v="${k}" ${S.view === k ? 'aria-current="page"' : ""}>${ICONS[k]}<span>${l}</span></button>`).join("");
   $("#nav-side").innerHTML = html;
-  const nb = (k, l, act) => `<button class="nav-btn" type="button" data-act="${act || "nav"}" data-v="${k}" ${(k === S.view || (k === "khac" && MORE_VIEWS.includes(S.view))) ? 'aria-current="page"' : ""}>${ICONS[k]}<span>${l}</span></button>`;
-  $("#nav-bottom").innerHTML = nb("tong-quan", "Tổng quan") + nb("giao-dich", "Giao dịch") + nb("tiet-kiem", "Tiết kiệm") + nb("vay", "Vay") + nb("khac", "Khác", "more");
+
   $("#sync-state").textContent = S.mode === "sync" ? "Đồng bộ với tài khoản " + (S.email || "") : S.mode === "loading" ? "Đang tải dữ liệu…" : "Dữ liệu lưu riêng trên thiết bị này. " + (S.lastBackup ? "Sao lưu gần nhất: " + new Date(S.lastBackup).toLocaleDateString("vi-VN") + "." : "Chưa sao lưu lần nào.");
 }
 
@@ -1454,7 +1521,7 @@ function viewBudget() {
       meta = `<span>Đã chi <b class="num">${fmt(s)}</b> / ${fmt(lim)}</span><span class="pill ${st}">${txt}</span>`;
       bar = `<div class="track"><div class="fill ${st}" style="width:${Math.min(100, s / lim * 100)}%"></div></div>`;
     } else meta = `<span>Đã chi <b class="num">${fmt(s)}</b></span><span class="hint">Chưa đặt hạn mức</span>`;
-    return `<div class="budget-row"><b style="display:flex;align-items:center;gap:8px"><span class="dot" style="--cc:${catColor(c.id)}"></span>${esc(c.name)}</b><input class="field r" id="bud-${esc(c.id)}" data-bud="${esc(c.id)}" inputmode="decimal" placeholder="Hạn mức / tháng" value="${lim ? fmtNum(lim) : ""}" aria-label="Hạn mức ${esc(c.name)}"><div class="meta">${meta}</div>${bar}</div>`;
+    return `<div class="budget-row"><b style="display:flex;align-items:center;gap:8px"><span class="dot" style="--cc:${catColor(c.id)}"></span>${esc(c.name)}</b><input class="field r" id="bud-${esc(c.id)}" data-bud="${esc(c.id)}" inputmode="numeric" placeholder="Hạn mức / tháng" value="${lim ? fmtNum(lim) : ""}" aria-label="Hạn mức ${esc(c.name)}"><div class="meta">${meta}</div>${bar}</div>`;
   }).join("");
   let head = "";
   if (totLim) {
@@ -1465,7 +1532,7 @@ function viewBudget() {
       <div class="card tile"><div class="k">Tình trạng</div><div class="v" style="font-size:16px;margin-top:10px"><span class="pill ${st}" style="font-size:13px">${txt}</span></div></div></div>`;
   }
   return topbar("Ngân sách") + head + `<div class="card"><div class="card-h"><h2>Hạn mức chi mỗi tháng</h2></div>
-    <p class="hint" style="margin:-4px 0 8px">Nhập số tiền tối đa cho mỗi danh mục (ví dụ 3tr, 500k). Hạn mức áp dụng cho mọi tháng; để trống nếu không cần.</p>${rows}</div>`;
+    <p class="hint" style="margin:-4px 0 8px">Nhập số tiền tối đa cho mỗi danh mục. Hạn mức áp dụng cho mọi tháng; để trống nếu không cần.</p>${rows}</div>`;
 }
 
 /* ---------- Báo cáo ---------- */
@@ -1613,7 +1680,7 @@ function viewSettings() {
   const bal = walletBalances(), u = usage();
   const wRows = S.settings.wallets.map(w => `<div class="set-row">
     <input class="field" id="wn-${esc(w.id)}" data-wname="${esc(w.id)}" value="${esc(w.name)}" aria-label="Tên ví">
-    <input class="field r" id="wi-${esc(w.id)}" data-winit="${esc(w.id)}" inputmode="decimal" value="${fmtNum(w.initial || 0)}" aria-label="Số dư ban đầu">
+    <input class="field r" id="wi-${esc(w.id)}" data-winit="${esc(w.id)}" inputmode="text" value="${fmtNum(w.initial || 0)}" aria-label="Số dư ban đầu">
     <button class="btn sm ghost danger" type="button" data-act="del-wallet" data-id="${esc(w.id)}" ${u.w.has(w.id) ? 'disabled title="Ví đang có giao dịch"' : ""} aria-label="Xóa ví">Xóa</button>
     <div class="hint" style="grid-column:1/-1;margin-top:-2px">Số dư hiện tại: <b class="num">${fmt(bal[w.id] || 0)}</b></div></div>`).join("");
   const cRows = type => cats(type).map(c => `<div class="set-row cat">
@@ -1622,7 +1689,7 @@ function viewSettings() {
     <button class="btn sm ghost danger" type="button" data-act="del-cat" data-id="${esc(c.id)}" ${u.c.has(c.id) ? 'disabled title="Danh mục đang có giao dịch, hãy đổi tên thay vì xóa"' : ""}>Xóa</button></div>`).join("");
   return topbar("Cài đặt", false) + `<div class="grid two">
     <div class="stack">${accountCard()}<div class="card"><div class="card-h"><h2>Ví và tài khoản</h2><button class="btn sm" type="button" data-act="add-wallet">+ Thêm ví</button></div>
-      <p class="hint" style="margin:-4px 0 10px">Nhập số dư ban đầu của từng ví (số tiền đang có khi bắt đầu dùng sổ). Thẻ tín dụng có thể để số âm nếu đang nợ, ví dụ −2tr.</p>
+      <p class="hint" style="margin:-4px 0 10px">Nhập số dư ban đầu của từng ví (số tiền đang có khi bắt đầu dùng sổ). Thẻ tín dụng đang nợ thì gõ dấu trừ phía trước, ví dụ -2.000.000.</p>
       <div class="set-head"><span>Tên</span><span style="text-align:right">Số dư ban đầu</span><span></span></div>${wRows}</div>
       <div class="card"><div class="card-h"><h2>Sao lưu và chuyển thiết bị</h2></div>
       <p class="hint" style="margin:-4px 0 10px">${S.mode === "sync" ? "Dữ liệu đã được lưu trên tài khoản. Bạn vẫn có thể tải thêm một bản sao lưu để cất giữ riêng." : "Dữ liệu chỉ lưu trên trình duyệt của thiết bị này. Hãy tải file sao lưu định kỳ. Để dùng trên thiết bị khác, mở website ở đó rồi chọn Khôi phục từ file."}</p>
@@ -1701,20 +1768,14 @@ function drawTx() {
     : `<label for="m-w">${t.type === "income" ? "Nhận vào ví" : "Trả từ ví"}</label><select class="field" id="m-w">${wOpts(t.walletId)}</select>`;
   openModal(`<h2>${t.isEdit ? "Sửa giao dịch" : "Thêm giao dịch"}</h2>
     <div class="seg" style="width:100%;display:grid;grid-template-columns:repeat(3,1fr)">${seg("expense", "Chi tiêu")}${seg("income", "Thu nhập")}${seg("transfer", "Chuyển khoản")}</div>
-    <label for="m-amt">Số tiền</label><input class="amount-in" id="m-amt" inputmode="decimal" autocomplete="off" placeholder="0" value="${t.amount ? fmtNum(t.amount) : ""}">
-    <div class="hint" id="m-hint" style="margin-top:4px">Gõ nhanh: 50k = 50.000 ₫, 1,5tr = 1.500.000 ₫</div>
+    <label for="m-amt">Số tiền</label><input class="amount-in" id="m-amt" inputmode="numeric" autocomplete="off" placeholder="0" value="${t.amount ? fmtNum(t.amount) : ""}">
     ${catChips}${walletFields}
     <div class="row2"><div><label for="m-date">Ngày</label><input class="field" type="date" id="m-date" value="${esc(t.date)}"></div>
     <div><label for="m-note">Ghi chú</label><input class="field" id="m-note" value="${esc(t.note || "")}" placeholder="Không bắt buộc" maxlength="140"></div></div>
     <div class="err" id="m-err"></div>
     <div class="modal-actions">${t.isEdit ? '<button class="btn danger" type="button" id="m-del">Xóa</button>' : ""}<span class="sp"></span><button class="btn" type="button" id="m-cancel">Hủy</button><button class="btn primary" type="button" id="m-save">Lưu</button></div>`);
   const amt = $("#m-amt");
-  amt.addEventListener("input", () => {
-    const raw = amt.value;
-    if (/^[\d.]*$/.test(raw) && raw) { const n = parseInt(raw.replace(/\./g, ""), 10); if (n) { const pos = raw.length - amt.selectionStart; amt.value = fmtNum(n); const p = Math.max(0, amt.value.length - pos); amt.setSelectionRange(p, p); } }
-    const v = parseAmount(amt.value);
-    $("#m-hint").textContent = v ? "= " + fmt(v) : "Gõ nhanh: 50k = 50.000 ₫, 1,5tr = 1.500.000 ₫";
-  });
+  amt.addEventListener("input", () => formatAmountInput(amt));
   amt.addEventListener("keydown", e => { if (e.key === "Enter") save(); });
   $("#modal").querySelectorAll("[data-mtype]").forEach(b => b.onclick = () => {
     collect(); const nt = b.dataset.mtype; if (nt === t.type) return; t.type = nt;
@@ -1781,6 +1842,12 @@ const actions = {
   "mp-today": () => { S.month = todayStr().slice(0, 7); S.mp = null; render(); },
   "mp-close": () => { S.mp = null; render(); },
   "more": () => openMoreMenu(),
+  "menu": () => openMenu(),
+  "menu-close": () => closeMenu(),
+  "menu-nav": el => { closeMenu(); go(el.dataset.v); },
+  "menu-backup": () => { closeMenu(); actions.backup(); },
+  "menu-signout": () => { closeMenu(); actions["sign-out"](); },
+  "menu-login": () => { closeMenu(); actions["auth-show"](); },
   "nav-more": el => { closeModal(); go(el.dataset.v); },
   "close-modal": () => closeModal(),
   "fund-new": () => openFundForm(null),
@@ -1856,6 +1923,7 @@ document.addEventListener("click", e => {
 }, true);
 document.addEventListener("keydown", e => {
   if (e.key === "Escape" && S.mp) { S.mp = null; render(); }
+  if (e.key === "Escape") closeMenu();
   if ((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches('[role="button"][data-act]')) { e.preventDefault(); e.target.click(); }
 });
 document.addEventListener("click", e => {
@@ -1863,6 +1931,7 @@ document.addEventListener("click", e => {
   const fn = actions[el.dataset.act]; if (fn) { e.preventDefault(); fn(el, e); }
 });
 document.addEventListener("input", e => {
+  if (e.target.matches && e.target.matches("[data-bud]")) formatAmountInput(e.target);
   if (e.target.id === "f-q") { S.f.q = e.target.value; $("#tx-list").innerHTML = txListHtml(); }
 });
 document.addEventListener("change", e => {
