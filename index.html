@@ -109,7 +109,7 @@ h2 { font-size: 16px; }
 .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .two { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; box-shadow: var(--shadow); min-width: 0; }
-.card-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.card-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
 .card-h .link { border: 0; background: none; color: var(--accent); font-weight: 600; font-size: 13px; cursor: pointer; padding: 4px; }
 .stack { display: flex; flex-direction: column; gap: 16px; }
 
@@ -242,6 +242,16 @@ table.data th { color: var(--muted); font-weight: 500; font-size: 12.5px; }
 .toast.show { display: block; }
 
 .tabbar, .fab { display: none; }
+.sync-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; padding: 4px 10px; border-radius: 99px; background: var(--surface); border: 1px solid var(--line); color: var(--ink-2); white-space: nowrap; }
+.sync-pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.sync-pill.ok::before { background: var(--good); }
+.sync-pill.busy::before { background: var(--warn); }
+.sync-pill.off { color: var(--crit); }
+.sync-pill.off::before { background: var(--crit); }
+.sync-pill[hidden] { display: none; }
+.auth-wrap { display: grid; place-items: center; min-height: calc(100vh - 140px); }
+.auth-card { width: 100%; max-width: 400px; padding: 24px; }
+.auth-card .lbl { display: block; font-size: 12.5px; color: var(--ink-2); font-weight: 500; margin: 12px 0 5px; }
 
 @media (max-width: 900px) {
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -285,6 +295,7 @@ table.data th { color: var(--muted); font-weight: 500; font-size: 12.5px; }
 <div class="toast" id="toast" role="status"></div>
 <div class="tip" id="tip"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>
 <script>
 (function () {
 "use strict";
@@ -350,62 +361,241 @@ const S = {
   view: "tong-quan",
   f: { type: "all", cat: "", wallet: "", q: "" },
   range: 6,
-  slow: false
+  slow: false,
+  auth: "unknown",
+  sync: "ok",
+  authTab: "login",
+  skipLogin: (() => { try { return localStorage.getItem("so-chi-tieu-skip-login") === "1"; } catch (e) { return false; } })()
 };
 
 /* ---------- lưu trữ ---------- */
+// Điền 2 giá trị của dự án Supabase để bật đăng nhập và đồng bộ. Để trống thì sổ chỉ lưu trên thiết bị.
+const SUPABASE_URL = "https://mzkevskppdetztypdzdt.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_axkJ2_McUZ_uFFHtGkLvLg_V3oBvuTy";
+
 const LS_KEY = "so-chi-tieu-v1";
-let db = null, rootRef = null, monthsCol = null;
-const queues = {};
+const SKIP_KEY = "so-chi-tieu-skip-login";
+let sb = null, uid = null, channel = null;
+let synced = {};                          // id -> chuỗi JSON đã có trên máy chủ
+let pend = { up: {}, del: {}, settings: false };
+let flushing = false, flushTimer = null, retryTimer = null, lastLoad = 0, renderTimer = null;
+
+const cacheKey = () => "so-chi-tieu-sync:" + uid;
+const stable = o => JSON.stringify(o, Object.keys(o).sort());
+const pendCount = () => Object.keys(pend.up).length + Object.keys(pend.del).length + (pend.settings ? 1 : 0);
 
 function lsLoad() {
   try { const raw = localStorage.getItem(LS_KEY); if (raw) { const d = JSON.parse(raw); S.settings = d.settings; S.months = d.months || {}; S.lastBackup = d.lastBackup || null; } } catch (e) {}
   if (!S.settings) S.settings = defaults();
 }
-function lsSave() { try { localStorage.setItem(LS_KEY, JSON.stringify({ settings: S.settings, months: S.months, lastBackup: S.lastBackup || null })); } catch (e) { toast("Không lưu được: bộ nhớ trình duyệt đã đầy hoặc bị chặn."); } }
-
-function queue(key, fn) {
-  const q = queues[key] || (queues[key] = { busy: false, next: null });
-  if (q.busy) { q.next = fn; return; }
-  run(q, fn);
+function lsSave() {
+  if (S.mode === "sync") { saveCache(); return; }
+  try { localStorage.setItem(LS_KEY, JSON.stringify({ settings: S.settings, months: S.months, lastBackup: S.lastBackup || null })); }
+  catch (e) { toast("Không lưu được: bộ nhớ trình duyệt đã đầy hoặc bị chặn."); }
 }
-async function run(q, fn) {
-  q.busy = true;
-  try { await fn(); }
-  catch (e) {
-    if (e && e.code === "unavailable") {
-      await new Promise(r => setTimeout(r, 600 + Math.random() * 800));
-      try { await fn(); } catch (e2) { writeError(e2); }
-    } else writeError(e);
-  }
-  q.busy = false;
-  if (q.next) { const f = q.next; q.next = null; run(q, f); }
+function saveCache() {
+  if (!uid) return;
+  try { localStorage.setItem(cacheKey(), JSON.stringify({ settings: S.settings, months: S.months, synced, pend, lastBackup: S.lastBackup || null })); } catch (e) {}
 }
-function writeError(e) {
-  const code = e && e.code;
-  if (code === "quota_exceeded") toast("Bộ nhớ đã đầy, chưa lưu được. Hãy xóa bớt dữ liệu cũ.");
-  else if (code === "invalid_argument") toast("Bạn không có quyền ghi dữ liệu ở trang này.");
-  else toast("Chưa lưu được thay đổi. Vui lòng thử lại.");
+function loadCache() {
+  try { const raw = localStorage.getItem(cacheKey()); if (!raw) return false; const d = JSON.parse(raw); S.settings = normalize(d.settings); S.months = d.months || {}; synced = d.synced || {}; pend = Object.assign({ up: {}, del: {}, settings: false }, d.pend || {}); S.lastBackup = d.lastBackup || null; return true; } catch (e) { return false; }
 }
-const pending = key => { const q = queues[key]; return !!(q && (q.busy || q.next)); };
 
 function saveSettings() {
-  if (S.mode === "cloud") queue("settings", () => rootRef.set(JSON.parse(JSON.stringify(S.settings))));
+  if (S.mode === "sync") { pend.settings = true; saveCache(); flushSoon(); }
   else lsSave();
 }
-function saveMonth(key) {
-  if (S.mode === "cloud") queue("m:" + key, () => {
-    const items = S.months[key] || [];
-    return items.length ? monthsCol.doc(key).set({ items: JSON.parse(JSON.stringify(items)) }) : monthsCol.doc(key).delete();
-  });
+function saveMonth() {
+  if (S.mode === "sync") { diffTx(); saveCache(); flushSoon(); }
   else lsSave();
+}
+/* So sánh dữ liệu trên máy với bản đã đồng bộ để biết dòng nào cần gửi, dòng nào cần xóa */
+function diffTx() {
+  const cur = {};
+  allTx().forEach(t => cur[t.id] = t);
+  Object.keys(cur).forEach(id => {
+    const j = stable(cur[id]);
+    if (synced[id] !== j) { pend.up[id] = cur[id]; delete pend.del[id]; }
+    else { delete pend.up[id]; delete pend.del[id]; }
+  });
+  Object.keys(pend.up).forEach(id => { if (!cur[id]) delete pend.up[id]; });
+  Object.keys(synced).forEach(id => { if (!cur[id]) pend.del[id] = true; });
 }
 
-function initStore() {
-  goLocal();
-  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
-  window.addEventListener("storage", e => { if (e.key === LS_KEY) { lsLoad(); S.settings = normalize(S.settings); render(); } });
+function setSync(state) { S.sync = state; renderSyncState(); }
+function renderSyncState() {
+  const n = pendCount();
+  let txt = "", cls = "";
+  if (S.mode !== "sync") txt = "";
+  else if (S.sync === "offline") { txt = n ? `Chưa đồng bộ (${n})` : "Ngoại tuyến"; cls = "off"; }
+  else if (S.sync === "syncing" || n) { txt = "Đang đồng bộ…"; cls = "busy"; }
+  else { txt = "Đã đồng bộ"; cls = "ok"; }
+  document.querySelectorAll(".sync-pill").forEach(el => { el.textContent = txt; el.className = "sync-pill " + cls; el.hidden = !txt; });
 }
+function flushSoon() { renderSyncState(); clearTimeout(flushTimer); flushTimer = setTimeout(flush, 400); }
+async function flush() {
+  if (flushing || !sb || !uid || S.mode !== "sync") return;
+  if (!pendCount()) { if (S.sync !== "offline") setSync("ok"); return; }
+  flushing = true; setSync("syncing");
+  try {
+    if (pend.settings) {
+      const snap = stable(S.settings);
+      const { error } = await sb.from("settings").upsert({ user_id: uid, data: S.settings, updated_at: new Date().toISOString() });
+      if (error) throw error;
+      if (stable(S.settings) === snap) pend.settings = false;
+    }
+    const ups = Object.values(pend.up);
+    for (let i = 0; i < ups.length; i += 500) {
+      const chunk = ups.slice(i, i + 500);
+      const { error } = await sb.from("transactions").upsert(chunk.map(t => ({ id: t.id, user_id: uid, data: t, updated_at: new Date().toISOString() })));
+      if (error) throw error;
+      chunk.forEach(t => { synced[t.id] = stable(t); if (pend.up[t.id] === t) delete pend.up[t.id]; });
+    }
+    const dels = Object.keys(pend.del);
+    for (let i = 0; i < dels.length; i += 200) {
+      const chunk = dels.slice(i, i + 200);
+      const { error } = await sb.from("transactions").delete().in("id", chunk);
+      if (error) throw error;
+      chunk.forEach(id => { delete synced[id]; delete pend.del[id]; });
+    }
+    saveCache();
+    flushing = false;
+    if (pendCount()) return flush();
+    setSync("ok");
+  } catch (e) {
+    flushing = false; saveCache(); setSync("offline");
+    clearTimeout(retryTimer); retryTimer = setTimeout(flush, 15000);
+  }
+}
+
+/* Tải toàn bộ dữ liệu của tài khoản từ máy chủ */
+async function loadAll() {
+  if (!sb || !uid) return;
+  const st = await sb.from("settings").select("data").eq("user_id", uid).maybeSingle();
+  if (st.error) throw st.error;
+  let rows = [];
+  for (let from = 0; ; from += 1000) {
+    const r = await sb.from("transactions").select("id,data").order("id").range(from, from + 999);
+    if (r.error) throw r.error;
+    rows = rows.concat(r.data || []);
+    if (!r.data || r.data.length < 1000) break;
+  }
+  lastLoad = Date.now();
+  synced = {};
+  const byId = {};
+  rows.forEach(r => { const t = Object.assign({}, r.data, { id: r.id }); synced[r.id] = stable(t); byId[r.id] = t; });
+  Object.values(pend.up).forEach(t => byId[t.id] = t);
+  Object.keys(pend.del).forEach(id => delete byId[id]);
+  const firstTime = S.mode === "loading";
+  const serverEmpty = !st.data && !rows.length;
+  if (firstTime && serverEmpty) {
+    const local = readLocalData();
+    S.mode = "sync";
+    if (local) {
+      S.settings = normalize(local.settings); S.months = {};
+      render();
+      confirmBox("Đưa dữ liệu lên tài khoản?", `Thiết bị này đang có ${local.n} giao dịch chưa thuộc tài khoản nào. Bạn có muốn đưa toàn bộ lên tài khoản để đồng bộ sang các thiết bị khác không?`, "Đưa lên", () => {
+        S.months = JSON.parse(JSON.stringify(local.months)); pend.settings = true; diffTx(); saveCache(); render(); flush(); toast(`Đang tải ${local.n} giao dịch lên tài khoản`);
+      }, () => { S.settings = defaults(); S.months = {}; pend.settings = true; saveCache(); render(); flush(); }, "Bắt đầu sổ mới");
+      return;
+    }
+    S.settings = defaults(); pend.settings = true;
+  } else if (st.data && !pend.settings) {
+    S.settings = normalize(JSON.parse(JSON.stringify(st.data.data)));
+    if (needsMigrate) { needsMigrate = false; pend.settings = true; }
+  } else if (!st.data) pend.settings = true;
+  const months = {};
+  Object.values(byId).forEach(t => (months[t.date.slice(0, 7)] = months[t.date.slice(0, 7)] || []).push(t));
+  S.months = months;
+  S.mode = "sync";
+  saveCache(); render(); flush();
+}
+function readLocalData() {
+  try {
+    const d = JSON.parse(localStorage.getItem(LS_KEY) || "null");
+    if (!d || !d.settings) return null;
+    const n = Object.values(d.months || {}).reduce((a, m) => a + (Array.isArray(m) ? m.length : 0), 0);
+    return n ? { settings: d.settings, months: d.months, n } : null;
+  } catch (e) { return null; }
+}
+
+function applyRemoteTx(p) {
+  if (p.eventType === "DELETE") {
+    const id = p.old && p.old.id; if (!id || pend.up[id]) return;
+    delete synced[id]; delete pend.del[id];
+    Object.keys(S.months).forEach(k => { S.months[k] = S.months[k].filter(t => t.id !== id); if (!S.months[k].length) delete S.months[k]; });
+  } else {
+    const r = p.new; if (!r || !r.data || pend.up[r.id] || pend.del[r.id]) return;
+    const t = Object.assign({}, r.data, { id: r.id });
+    if (synced[r.id] === stable(t)) return;
+    synced[r.id] = stable(t);
+    Object.keys(S.months).forEach(k => { S.months[k] = S.months[k].filter(x => x.id !== r.id); if (!S.months[k].length) delete S.months[k]; });
+    const m = t.date.slice(0, 7); (S.months[m] = S.months[m] || []).push(t);
+  }
+  saveCache(); renderSoon();
+}
+function applyRemoteSettings(p) {
+  if (pend.settings || !p.new || !p.new.data) return;
+  S.settings = normalize(JSON.parse(JSON.stringify(p.new.data)));
+  saveCache(); renderSoon();
+}
+function renderSoon() { clearTimeout(renderTimer); renderTimer = setTimeout(() => { if (!$("#scrim").classList.contains("open") || !M) render(); else renderTimer = setTimeout(renderSoon, 1500); }, 250); }
+
+function subscribe() {
+  if (channel) sb.removeChannel(channel);
+  channel = sb.channel("so-chi-tieu-" + uid)
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "transactions", filter: "user_id=eq." + uid }, applyRemoteTx)
+    .on("postgres_changes", { event: "UPDATE", schema: "public", table: "transactions", filter: "user_id=eq." + uid }, applyRemoteTx)
+    .on("postgres_changes", { event: "DELETE", schema: "public", table: "transactions" }, applyRemoteTx)
+    .on("postgres_changes", { event: "*", schema: "public", table: "settings", filter: "user_id=eq." + uid }, applyRemoteSettings)
+    .subscribe(status => { if (status === "SUBSCRIBED" && S.mode === "sync" && Date.now() - lastLoad > 5000) refresh(); });
+}
+async function refresh() {
+  try { await flush(); await loadAll(); if (!pendCount()) setSync("ok"); }
+  catch (e) { setSync("offline"); }
+}
+
+async function startSync(user) {
+  uid = user.id; S.email = user.email; S.auth = "signedin";
+  synced = {}; pend = { up: {}, del: {}, settings: false };
+  if (loadCache()) { S.mode = "sync"; render(); }
+  else { S.mode = "loading"; render(); }
+  subscribe();
+  try { await loadAll(); }
+  catch (e) {
+    if (S.mode === "loading") { S.loadError = true; render(); }
+    else setSync("offline");
+    clearTimeout(retryTimer); retryTimer = setTimeout(() => startSyncRetry(), 15000);
+  }
+}
+async function startSyncRetry() { if (!uid) return; try { S.loadError = false; await loadAll(); } catch (e) { if (S.mode === "loading") render(); retryTimer = setTimeout(startSyncRetry, 15000); } }
+
+async function initStore() {
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
+  window.addEventListener("storage", e => { if (S.mode === "local" && e.key === LS_KEY) { lsLoad(); S.settings = normalize(S.settings); render(); } });
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !window.supabase) { S.auth = "none"; goLocal(); return; }
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+  sb.auth.onAuthStateChange((ev, session) => {
+    if (ev === "PASSWORD_RECOVERY") setTimeout(openNewPassword, 300);
+    if (ev === "SIGNED_IN" && session && session.user && session.user.id !== uid) startSync(session.user);
+  });
+  let session = null;
+  try { session = (await sb.auth.getSession()).data.session; } catch (e) {}
+  if (session) startSync(session.user);
+  else { S.auth = "signedout"; goLocal(); }
+  window.addEventListener("online", () => { if (S.mode === "sync") refresh(); });
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && S.mode === "sync" && Date.now() - lastLoad > 30000) refresh(); });
+}
+async function signOut() {
+  if (pendCount()) { toast("Còn thay đổi chưa đồng bộ. Hãy kết nối mạng rồi thử lại."); flush(); return; }
+  try { if (channel) await sb.removeChannel(channel); await sb.auth.signOut(); } catch (e) {}
+  try { localStorage.removeItem(cacheKey()); } catch (e) {}
+  uid = null; channel = null; synced = {}; pend = { up: {}, del: {}, settings: false };
+  S.auth = "signedout"; S.email = null; S.skipLogin = false;
+  try { localStorage.removeItem(SKIP_KEY); } catch (e) {}
+  goLocal();
+}
+
 let migrated = false;
 function goLocal() { S.mode = "local"; lsLoad(); S.settings = normalize(S.settings); render(); }
 function normalize(d) {
@@ -424,6 +614,80 @@ function nextColor(list) {
   const used = new Set(list.map(c => c.color).filter(n => typeof n === "number"));
   for (let i = 1; i <= 8; i++) if (!used.has(i)) return i;
   return 0;
+}
+
+/* ---------- đăng nhập ---------- */
+function authErr(e) {
+  const m = String((e && e.message) || e || "");
+  if (/invalid login/i.test(m)) return "Email hoặc mật khẩu không đúng.";
+  if (/not confirmed/i.test(m)) return "Email chưa được xác nhận. Hãy mở thư xác nhận trong hộp thư rồi đăng nhập lại.";
+  if (/already registered|already been registered/i.test(m)) return "Email này đã có tài khoản. Hãy chọn Đăng nhập.";
+  if (/password.*(6|characters)|weak/i.test(m)) return "Mật khẩu cần ít nhất 6 ký tự.";
+  if (/rate|too many/i.test(m)) return "Bạn thử quá nhiều lần. Đợi vài phút rồi thử lại.";
+  if (/fetch|network|failed/i.test(m)) return "Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.";
+  if (/signups not allowed|signup.*disabled/i.test(m)) return "Đã tắt đăng ký tài khoản mới.";
+  return "Có lỗi: " + m;
+}
+function viewLogin() {
+  const signup = S.authTab === "signup";
+  return `<div class="auth-wrap"><div class="card auth-card">
+    <div class="brand" style="padding:0 0 14px"><div class="brand-mark">₫</div><div class="brand-name">Sổ Chi Tiêu</div></div>
+    <h1 style="margin-bottom:6px">${signup ? "Tạo tài khoản" : "Đăng nhập"}</h1>
+    <p class="hint" style="margin:0 0 14px">Đăng nhập cùng một tài khoản trên điện thoại và máy tính để sổ tự đồng bộ.</p>
+    <div class="seg" style="width:100%;display:grid;grid-template-columns:1fr 1fr;margin-bottom:6px"><button type="button" data-act="auth-tab" data-v="login" aria-pressed="${!signup}">Đăng nhập</button><button type="button" data-act="auth-tab" data-v="signup" aria-pressed="${signup}">Tạo tài khoản</button></div>
+    <form id="auth-form" novalidate>
+      <label class="lbl" for="au-email">Email</label><input class="field" id="au-email" type="email" autocomplete="email" required value="${esc(S.authEmail || "")}">
+      <label class="lbl" for="au-pass">Mật khẩu</label><input class="field" id="au-pass" type="password" autocomplete="${signup ? "new-password" : "current-password"}" minlength="6" required placeholder="${signup ? "Ít nhất 6 ký tự" : ""}">
+      <div class="err" id="au-err">${esc(S.authMsg || "")}</div>
+      <button class="btn primary" type="submit" style="width:100%;height:44px;margin-top:6px" id="au-submit">${signup ? "Tạo tài khoản" : "Đăng nhập"}</button>
+    </form>
+    ${signup ? "" : `<button class="btn ghost sm" type="button" data-act="auth-forgot" style="margin-top:8px">Quên mật khẩu?</button>`}
+    <div style="border-top:1px solid var(--line);margin:16px 0 12px"></div>
+    <button class="btn ghost sm" type="button" data-act="auth-skip">Dùng trên thiết bị này, không đồng bộ</button>
+  </div></div>`;
+}
+document.addEventListener("submit", async e => {
+  if (e.target.id !== "auth-form") return;
+  e.preventDefault();
+  const email = $("#au-email").value.trim(), pass = $("#au-pass").value, err = $("#au-err"), btn = $("#au-submit");
+  S.authEmail = email; S.authMsg = "";
+  if (!/^\S+@\S+\.\S+$/.test(email)) { err.textContent = "Nhập email hợp lệ."; return; }
+  if (pass.length < 6) { err.textContent = "Mật khẩu cần ít nhất 6 ký tự."; return; }
+  btn.disabled = true; err.textContent = "";
+  try {
+    if (S.authTab === "signup") {
+      const { data, error } = await sb.auth.signUp({ email, password: pass, options: { emailRedirectTo: location.origin + location.pathname } });
+      if (error) throw error;
+      if (data.session) { startSync(data.session.user); return; }
+      S.authTab = "login"; S.authMsg = "";
+      render();
+      $("#au-err").style.color = "var(--pos)";
+      $("#au-err").textContent = "Đã tạo tài khoản. Hãy mở email xác nhận vừa được gửi tới " + email + ", bấm vào đường link, rồi đăng nhập.";
+    } else {
+      const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+      if (error) throw error;
+      startSync(data.user);
+    }
+  } catch (ex) { err.textContent = authErr(ex); btn.disabled = false; }
+});
+function openNewPassword() {
+  openModal(`<h2>Đặt mật khẩu mới</h2><label for="np">Mật khẩu mới</label><input class="field" id="np" type="password" autocomplete="new-password" minlength="6"><div class="err" id="np-err"></div><div class="modal-actions"><span class="sp"></span><button class="btn primary" type="button" id="np-ok">Lưu mật khẩu</button></div>`);
+  $("#np-ok").onclick = async () => {
+    const v = $("#np").value; if (v.length < 6) { $("#np-err").textContent = "Mật khẩu cần ít nhất 6 ký tự."; return; }
+    const { error } = await sb.auth.updateUser({ password: v });
+    if (error) { $("#np-err").textContent = authErr(error); return; }
+    closeModal(); toast("Đã đổi mật khẩu");
+  };
+}
+function accountCard() {
+  if (S.auth === "none") return "";
+  if (S.mode === "sync") return `<div class="card"><div class="card-h"><h2>Tài khoản và đồng bộ</h2><span class="sync-pill"></span></div>
+    <p style="margin:-4px 0 4px">Đang đăng nhập: <b>${esc(S.email || "")}</b></p>
+    <p class="hint" style="margin:0 0 12px">Mọi thay đổi tự đồng bộ giữa các thiết bị đăng nhập cùng tài khoản này. Khi mất mạng, thay đổi được giữ lại và gửi đi khi có mạng.</p>
+    <button class="btn" type="button" data-act="sign-out">Đăng xuất</button></div>`;
+  return `<div class="card"><div class="card-h"><h2>Đồng bộ giữa các thiết bị</h2></div>
+    <p class="hint" style="margin:-4px 0 12px">Sổ đang chỉ lưu trên thiết bị này. Đăng nhập để dùng chung một sổ trên điện thoại và máy tính.</p>
+    <button class="btn primary" type="button" data-act="auth-show">Đăng nhập / Tạo tài khoản</button></div>`;
 }
 
 /* ---------- tính toán ---------- */
@@ -495,11 +759,11 @@ function renderNav() {
   const html = VIEWS.map(([k, l]) => `<button class="nav-btn" type="button" data-act="nav" data-v="${k}" ${S.view === k ? 'aria-current="page"' : ""}>${ICONS[k]}<span>${l}</span></button>`).join("");
   $("#nav-side").innerHTML = html;
   $("#nav-bottom").innerHTML = html;
-  $("#sync-state").textContent = "Dữ liệu lưu riêng trên thiết bị này. " + (S.lastBackup ? "Sao lưu gần nhất: " + new Date(S.lastBackup).toLocaleDateString("vi-VN") + "." : "Chưa sao lưu lần nào.");
+  $("#sync-state").textContent = S.mode === "sync" ? "Đồng bộ với tài khoản " + (S.email || "") : S.mode === "loading" ? "Đang tải dữ liệu…" : "Dữ liệu lưu riêng trên thiết bị này. " + (S.lastBackup ? "Sao lưu gần nhất: " + new Date(S.lastBackup).toLocaleDateString("vi-VN") + "." : "Chưa sao lưu lần nào.");
 }
 
 function topbar(title, withMonth = true) {
-  return `<div class="topbar"><h1>${title}</h1><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+  return `<div class="topbar"><h1>${title}</h1><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="sync-pill" hidden></span>
     ${withMonth ? `<div class="month-pick"><button type="button" data-act="month" data-d="-1" aria-label="Tháng trước">‹</button><span class="lbl">${monthLabel(S.month)}</span><button type="button" data-act="month" data-d="1" aria-label="Tháng sau">›</button></div>` : ""}
     <button class="btn primary add-top" type="button" data-act="add-tx">+ Thêm giao dịch</button></div></div>`;
 }
@@ -868,11 +1132,11 @@ function viewSettings() {
     <input class="field" id="cn-${esc(c.id)}" data-cname="${esc(c.id)}" value="${esc(c.name)}" aria-label="Tên danh mục">
     <button class="btn sm ghost danger" type="button" data-act="del-cat" data-id="${esc(c.id)}" ${u.c.has(c.id) ? 'disabled title="Danh mục đang có giao dịch, hãy đổi tên thay vì xóa"' : ""}>Xóa</button></div>`).join("");
   return topbar("Cài đặt", false) + `<div class="grid two">
-    <div class="stack"><div class="card"><div class="card-h"><h2>Ví và tài khoản</h2><button class="btn sm" type="button" data-act="add-wallet">+ Thêm ví</button></div>
+    <div class="stack">${accountCard()}<div class="card"><div class="card-h"><h2>Ví và tài khoản</h2><button class="btn sm" type="button" data-act="add-wallet">+ Thêm ví</button></div>
       <p class="hint" style="margin:-4px 0 10px">Nhập số dư ban đầu của từng ví (số tiền đang có khi bắt đầu dùng sổ). Thẻ tín dụng có thể để số âm nếu đang nợ, ví dụ −2tr.</p>
       <div class="set-head"><span>Tên</span><span style="text-align:right">Số dư ban đầu</span><span></span></div>${wRows}</div>
       <div class="card"><div class="card-h"><h2>Sao lưu và chuyển thiết bị</h2></div>
-      <p class="hint" style="margin:-4px 0 10px">Dữ liệu chỉ lưu trên trình duyệt của thiết bị này. Hãy tải file sao lưu định kỳ. Để dùng trên thiết bị khác, mở website ở đó rồi chọn Khôi phục từ file.</p>
+      <p class="hint" style="margin:-4px 0 10px">${S.mode === "sync" ? "Dữ liệu đã được lưu trên tài khoản. Bạn vẫn có thể tải thêm một bản sao lưu để cất giữ riêng." : "Dữ liệu chỉ lưu trên trình duyệt của thiết bị này. Hãy tải file sao lưu định kỳ. Để dùng trên thiết bị khác, mở website ở đó rồi chọn Khôi phục từ file."}</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" type="button" data-act="backup">Tải file sao lưu</button><button class="btn" type="button" data-act="restore">Khôi phục từ file</button><input type="file" id="restore-file" accept=".json,application/json" style="display:none"></div>
       <p class="hint" style="margin:8px 0 12px">${S.lastBackup ? "Sao lưu gần nhất: " + new Date(S.lastBackup).toLocaleString("vi-VN") : "Chưa sao lưu lần nào."}</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" data-act="csv-file">Tải file Excel (CSV)</button><button class="btn" type="button" data-act="export">Sao chép CSV</button></div><textarea id="csv-out" class="field" style="display:none;height:120px;margin-top:10px;padding:8px;font-size:12px" readonly aria-label="Dữ liệu CSV"></textarea>
@@ -886,8 +1150,9 @@ function parseSigned(raw) { const s = String(raw).trim(); const neg = /^[-−]/.
 function render() {
   renderNav();
   const main = $("#main");
+  if (S.auth === "signedout" && !S.skipLogin) { main.innerHTML = viewLogin(); return; }
   if (S.mode === "loading" || !S.settings) {
-    main.innerHTML = `<div class="topbar"><h1>Sổ Chi Tiêu</h1></div><div class="card"><p class="hint" style="margin:0">${S.slow ? "Chưa kết nối được tới dữ liệu của bạn. Ứng dụng vẫn đang thử lại, vui lòng chờ hoặc kiểm tra mạng." : "Đang tải dữ liệu…"}</p></div>`;
+    main.innerHTML = `<div class="topbar"><h1>Sổ Chi Tiêu</h1></div><div class="card"><p class="hint" style="margin:0">${S.loadError ? "Chưa tải được dữ liệu từ tài khoản. Kiểm tra mạng, ứng dụng sẽ tự thử lại." : "Đang tải dữ liệu từ tài khoản…"}</p></div>`;
     return;
   }
   const a = document.activeElement, aid = a && a.id && main.contains(a) ? a.id : null;
@@ -895,10 +1160,11 @@ function render() {
   let banner = "";
   const hasData = Object.keys(S.months).length > 0;
   const stale = !S.lastBackup || Date.now() - S.lastBackup > 30 * 864e5;
-  if (hasData && stale && S.view !== "cai-dat") banner = `<div class="banner"><span><b>${S.lastBackup ? "Đã hơn 30 ngày chưa sao lưu." : "Bạn chưa sao lưu dữ liệu."}</b> Dữ liệu chỉ nằm trên thiết bị này, nếu xóa lịch sử trình duyệt sẽ mất. </span><button class="btn sm" type="button" data-act="backup" style="margin-left:auto">Tải file sao lưu</button></div>`;
+  if (S.mode === "local" && hasData && stale && S.view !== "cai-dat") banner = `<div class="banner"><span><b>${S.lastBackup ? "Đã hơn 30 ngày chưa sao lưu." : "Bạn chưa sao lưu dữ liệu."}</b> Dữ liệu chỉ nằm trên thiết bị này, nếu xóa lịch sử trình duyệt sẽ mất. </span><button class="btn sm" type="button" data-act="backup" style="margin-left:auto">Tải file sao lưu</button></div>`;
   const v = { "tong-quan": viewOverview, "giao-dich": viewTx, "ngan-sach": viewBudget, "bao-cao": viewReport, "cai-dat": viewSettings }[S.view] || viewOverview;
   TIPS = []; $("#tip").style.display = "none";
   main.innerHTML = banner + v();
+  renderSyncState();
   if (aid) { const el = document.getElementById(aid); if (el) { el.focus(); if (sel) try { el.setSelectionRange(sel[0], sel[1]); } catch (e) {} } }
 }
 function go(view) {
@@ -915,9 +1181,9 @@ function closeModal() { $("#scrim").classList.remove("open"); $("#modal").innerH
 $("#scrim").addEventListener("click", e => { if (e.target.id === "scrim") closeModal(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#scrim").classList.contains("open")) closeModal(); });
 
-function confirmBox(title, text, okLabel, onOk) {
-  openModal(`<h2>${title}</h2><p style="margin:0;color:var(--ink-2)">${text}</p><div class="modal-actions"><span class="sp"></span><button class="btn" type="button" id="cf-no">Hủy</button><button class="btn primary" type="button" id="cf-ok" style="background:var(--crit);border-color:var(--crit);color:#fff">${okLabel}</button></div>`);
-  $("#cf-no").onclick = closeModal;
+function confirmBox(title, text, okLabel, onOk, onCancel, cancelLabel) {
+  openModal(`<h2>${title}</h2><p style="margin:0;color:var(--ink-2)">${text}</p><div class="modal-actions"><span class="sp"></span><button class="btn" type="button" id="cf-no">${cancelLabel || "Hủy"}</button><button class="btn primary" type="button" id="cf-ok" style="background:var(--crit);border-color:var(--crit);color:#fff">${okLabel}</button></div>`);
+  $("#cf-no").onclick = () => { closeModal(); if (onCancel) onCancel(); };
   $("#cf-ok").onclick = () => { closeModal(); onOk(); };
 }
 
@@ -1021,6 +1287,17 @@ const actions = {
   "cycle-color": el => { const c = catById(el.dataset.id); if (!c) return; c.color = ((c.color ?? 0) + 1) % 9; saveSettings(); render(); },
   "add-cat": el => { S.settings.categories.push({ id: "c-" + newId(), name: "Danh mục mới", type: el.dataset.type, color: nextColor(cats(el.dataset.type)) }); saveSettings(); render(); const ins = document.querySelectorAll("[data-cname]"); const id = S.settings.categories[S.settings.categories.length - 1].id; const inp = document.getElementById("cn-" + id); if (inp) { inp.focus(); inp.select(); } },
   "del-cat": el => { const c = catById(el.dataset.id); if (!c) return; confirmBox("Xóa danh mục “" + esc(c.name) + "”?", "Danh mục chưa có giao dịch nào nên có thể xóa an toàn.", "Xóa", () => { S.settings.categories = S.settings.categories.filter(x => x.id !== c.id); delete S.settings.budgets[c.id]; saveSettings(); render(); }); },
+  "auth-tab": el => { S.authTab = el.dataset.v; S.authMsg = ""; render(); },
+  "auth-skip": () => { S.skipLogin = true; try { localStorage.setItem(SKIP_KEY, "1"); } catch (e) {} render(); },
+  "auth-show": () => { S.skipLogin = false; try { localStorage.removeItem(SKIP_KEY); } catch (e) {} render(); },
+  "auth-forgot": async () => {
+    const email = ($("#au-email").value || "").trim(); const err = $("#au-err");
+    if (!/^\S+@\S+\.\S+$/.test(email)) { err.textContent = "Nhập email của bạn vào ô Email trước."; return; }
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+    if (error) { err.textContent = authErr(error); return; }
+    err.style.color = "var(--pos)"; err.textContent = "Đã gửi email đặt lại mật khẩu tới " + email + ".";
+  },
+  "sign-out": () => confirmBox("Đăng xuất?", "Dữ liệu vẫn nằm an toàn trên tài khoản. Đăng nhập lại bất cứ lúc nào để tiếp tục.", "Đăng xuất", signOut),
   "backup": () => {
     const payload = { app: "so-chi-tieu", version: 1, exportedAt: new Date().toISOString(), settings: S.settings, months: S.months };
     downloadFile(`so-chi-tieu-${todayStr()}.json`, JSON.stringify(payload), "application/json");
@@ -1054,7 +1331,7 @@ document.addEventListener("change", e => {
     if (!d || d.app !== "so-chi-tieu" || !d.settings || typeof d.months !== "object") { toast("Đây không phải file sao lưu của Sổ Chi Tiêu."); return; }
     const n = Object.values(d.months).reduce((a, m) => a + (Array.isArray(m) ? m.length : 0), 0);
     confirmBox("Khôi phục dữ liệu?", `File sao lưu ngày ${esc(new Date(d.exportedAt).toLocaleDateString("vi-VN"))} có ${n} giao dịch. Dữ liệu hiện có trên thiết bị này sẽ được thay thế hoàn toàn.`, "Khôi phục", () => {
-      S.settings = normalize(d.settings); S.months = d.months; S.lastBackup = Date.now(); lsSave(); render(); toast(`Đã khôi phục ${n} giao dịch`);
+      S.settings = normalize(d.settings); S.months = d.months; S.lastBackup = Date.now(); saveSettings(); saveMonth(); render(); toast(`Đã khôi phục ${n} giao dịch`);
     });
   });
 });

@@ -1,5 +1,5 @@
 // Bộ nhớ đệm để website mở được cả khi không có mạng.
-const CACHE = "so-chi-tieu-v1";
+const CACHE = "so-chi-tieu-v2";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
@@ -18,7 +18,7 @@ self.addEventListener("fetch", e => {
     return;
   }
   // Font và các file tĩnh: dùng bản đã lưu, đồng thời cập nhật ngầm.
-  if (url.origin === location.origin || url.hostname.endsWith("gstatic.com") || url.hostname.endsWith("googleapis.com")) {
+  if (url.origin === location.origin || url.hostname.endsWith("gstatic.com") || url.hostname.endsWith("googleapis.com") || url.hostname === "cdn.jsdelivr.net") {
     e.respondWith(caches.match(req).then(hit => {
       const net = fetch(req).then(res => { if (res.ok || res.type === "opaque") caches.open(CACHE).then(c => c.put(req, res.clone())); return res; }).catch(() => hit);
       return hit || net;
