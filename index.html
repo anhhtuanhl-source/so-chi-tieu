@@ -67,6 +67,12 @@
 
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
+html { touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+button, .chip, [role="button"] { touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+.btn:active, .chip:active, .tx:active, .fbtile:active, .fbrow:active, .ms-card:active, .icbtn:active, .icon-btn:active, .hamb:active, .fab:active { transform: scale(.97); opacity: .85; }
+.day, .ov-sec:not(.span2), .loan-row { content-visibility: auto; contain-intrinsic-size: auto 280px; }
+.ov-grid.editing .ov-sec { content-visibility: visible; }
+.upd { position: fixed; left: 50%; transform: translateX(-50%); top: calc(64px + env(safe-area-inset-top)); z-index: 70; display: flex; align-items: center; gap: 12px; background: var(--ink); color: var(--bg); padding: 8px 8px 8px 16px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.25); font-size: 14px; white-space: nowrap; }
 body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font-body); -webkit-font-smoothing: antialiased; }
 button, input, select, textarea { font: inherit; color: inherit; }
 h1, h2, h3 { font-family: var(--font-display); font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
@@ -433,7 +439,7 @@ body.auth-mode .auth-wrap { min-height: calc(100vh - 48px); }
 .fbtile.editing .fbtx { flex: 1; }
 .fb-arrows { display: flex; }
 .fb-arrows .icon-btn { width: 26px; height: 26px; }
-.appbar { display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 40; padding: calc(8px + env(safe-area-inset-top)) 12px 8px 16px; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+.appbar { display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 40; padding: calc(8px + env(safe-area-inset-top)) 12px 8px 16px; background: var(--bg); border-bottom: 1px solid var(--line); }
 .brand-sm { display: flex; align-items: center; gap: 8px; font: 600 16px var(--font-display); margin-right: auto; }
 .brand-sm .brand-mark { width: 28px; height: 28px; border-radius: 8px; font-size: 14px; }
 .hamb { width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--surface-2); color: var(--ink); display: grid; place-items: center; cursor: pointer; }
@@ -976,19 +982,29 @@ const catColor = id => `var(--c${catById(id)?.color ?? 0})`;
 let TIPS = [];
 const tipReg = html => (TIPS.push(html), TIPS.length - 1);
 const tipRow = (color, label, val) => `<div class="r"><span>${color ? `<i style="background:${color}"></i>` : ""}${esc(label)}</span><b>${val}</b></div>`;
+let tipShown = false;
+function hideTip() { if (tipShown) { $("#tip").style.display = "none"; tipShown = false; } }
 document.addEventListener("pointermove", e => {
-  const tip = $("#tip");
+  if (e.pointerType === "touch") return;
   const el = e.target.closest && e.target.closest("[data-tip]");
-  if (!el || !TIPS[+el.dataset.tip]) { tip.style.display = "none"; return; }
+  if (!el || !TIPS[+el.dataset.tip]) { hideTip(); return; }
+  showTipAt(el, e.clientX, e.clientY);
+}, { passive: true });
+document.addEventListener("click", e => {
+  const el = e.target.closest && e.target.closest("[data-tip]");
+  if (el && TIPS[+el.dataset.tip]) showTipAt(el, e.clientX, e.clientY); else hideTip();
+}, true);
+function showTipAt(el, cx, cy) {
+  const tip = $("#tip");
   tip.innerHTML = TIPS[+el.dataset.tip];
-  tip.style.display = "block";
+  tip.style.display = "block"; tipShown = true;
   const w = tip.offsetWidth, h = tip.offsetHeight;
-  let x = e.clientX + 14, y = e.clientY - h - 12;
-  if (x + w > innerWidth - 8) x = e.clientX - w - 14;
-  if (y < 8) y = e.clientY + 16;
+  let x = cx + 14, y = cy - h - 12;
+  if (x + w > innerWidth - 8) x = cx - w - 14;
+  if (y < 8) y = cy + 16;
   tip.style.left = Math.max(8, x) + "px"; tip.style.top = y + "px";
-});
-document.addEventListener("scroll", () => { $("#tip").style.display = "none"; }, true);
+}
+document.addEventListener("scroll", hideTip, { capture: true, passive: true });
 const walletName = id => walletById(id)?.name || "(Ví đã xóa)";
 const monthTx = key => (S.months[key] || []);
 const allTx = () => Object.values(S.months).flat();
@@ -2672,7 +2688,16 @@ const h0 = location.hash.slice(1);
 if (VIEWS.some(v => v[0] === h0)) S.view = h0;
 render();
 initStore();
-if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+  navigator.serviceWorker.addEventListener("message", e => {
+    if (e.data !== "update-ready" || document.getElementById("upd")) return;
+    const bar = document.createElement("div"); bar.id = "upd"; bar.className = "upd";
+    bar.innerHTML = '<span>Đã có bản mới của sổ</span><button type="button" class="btn sm primary">Cập nhật</button>';
+    bar.querySelector("button").onclick = () => location.reload();
+    document.body.appendChild(bar);
+  });
+}
 })();
 </script>
 </body>

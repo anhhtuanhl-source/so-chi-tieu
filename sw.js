@@ -1,5 +1,5 @@
 // Bộ nhớ đệm để website mở được cả khi không có mạng.
-const CACHE = "so-chi-tieu-v3";
+const CACHE = "so-chi-tieu-v4";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
@@ -12,9 +12,21 @@ self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
-  // Trang chính: ưu tiên bản mới từ mạng, mất mạng thì dùng bản đã lưu.
   if (req.mode === "navigate") {
-    e.respondWith(fetch(req).then(res => { caches.open(CACHE).then(c => c.put("./index.html", res.clone())); return res; }).catch(() => caches.match("./index.html")));
+    // Mở ngay bằng bản đã lưu (nhanh như ứng dụng), đồng thời tải bản mới ở nền cho lần mở sau.
+    e.respondWith(caches.open(CACHE).then(async c => {
+      const hit = await c.match("./index.html");
+      const net = fetch(req).then(async res => {
+        if (res.ok) {
+          const fresh = await res.clone().text(), old = hit ? await hit.clone().text() : null;
+          await c.put("./index.html", res.clone());
+          if (old && old !== fresh) (await self.clients.matchAll({ includeUncontrolled: true })).forEach(cl => cl.postMessage("update-ready"));
+        }
+        return res;
+      }).catch(() => hit);
+      if (hit) e.waitUntil(net.catch(() => {}));
+      return hit || net;
+    }));
     return;
   }
   // Font và các file tĩnh: dùng bản đã lưu, đồng thời cập nhật ngầm.
