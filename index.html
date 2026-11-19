@@ -560,19 +560,30 @@ async function refresh() {
 }
 
 async function startSync(user) {
-  uid = user.id; S.email = user.email; S.auth = "signedin";
+  if (uid === user.id && S.auth === "signedin") return;
+  uid = user.id; S.email = user.email; S.auth = "signedin"; S.loadError = null;
+  clearTimeout(S.slowTimer);
+  S.slowTimer = setTimeout(() => { if (S.mode === "loading" && !S.loadError) { S.loadError = "Máy chủ phản hồi chậm hơn bình thường."; render(); } }, 15000);
   synced = {}; pend = { up: {}, del: {}, settings: false };
   if (loadCache()) { S.mode = "sync"; render(); }
   else { S.mode = "loading"; render(); }
   subscribe();
-  try { await loadAll(); }
+  try { await loadAll(); clearTimeout(S.slowTimer); }
   catch (e) {
-    if (S.mode === "loading") { S.loadError = true; render(); }
+    clearTimeout(S.slowTimer);
+    if (S.mode === "loading") { S.loadError = describeErr(e); render(); }
     else setSync("offline");
     clearTimeout(retryTimer); retryTimer = setTimeout(() => startSyncRetry(), 15000);
   }
 }
-async function startSyncRetry() { if (!uid) return; try { S.loadError = false; await loadAll(); } catch (e) { if (S.mode === "loading") render(); retryTimer = setTimeout(startSyncRetry, 15000); } }
+async function startSyncRetry() { if (!uid) return; clearTimeout(retryTimer); try { await loadAll(); S.loadError = null; } catch (e) { if (S.mode === "loading") { S.loadError = describeErr(e); render(); } retryTimer = setTimeout(startSyncRetry, 15000); } }
+function describeErr(e) {
+  const m = String((e && (e.message || e.details || e.hint)) || e || "");
+  if (/relation .* does not exist|Could not find the table|schema cache/i.test(m)) return "Chưa có bảng dữ liệu trên Supabase. Hãy chạy lại đoạn SQL tạo bảng trong SQL Editor.";
+  if (/JWT|apikey|Invalid API key|No API key/i.test(m)) return "Khóa kết nối Supabase không hợp lệ.";
+  if (/fetch|network|Failed/i.test(m)) return "Không kết nối được máy chủ. Kiểm tra mạng.";
+  return "Lỗi từ máy chủ: " + m;
+}
 
 async function initStore() {
   try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
@@ -581,7 +592,7 @@ async function initStore() {
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
   sb.auth.onAuthStateChange((ev, session) => {
     if (ev === "PASSWORD_RECOVERY") setTimeout(openNewPassword, 300);
-    if (ev === "SIGNED_IN" && session && session.user && session.user.id !== uid) startSync(session.user);
+    if (ev === "SIGNED_IN" && session && session.user) { const u = session.user; setTimeout(() => startSync(u), 0); }
   });
   let session = null;
   try { session = (await sb.auth.getSession()).data.session; } catch (e) {}
@@ -1158,7 +1169,9 @@ function render() {
   document.body.classList.toggle("auth-mode", authMode);
   if (authMode) { main.innerHTML = viewLogin(); return; }
   if (S.mode === "loading" || !S.settings) {
-    main.innerHTML = `<div class="topbar"><h1>Sổ Chi Tiêu</h1></div><div class="card"><p class="hint" style="margin:0">${S.loadError ? "Chưa tải được dữ liệu từ tài khoản. Kiểm tra mạng, ứng dụng sẽ tự thử lại." : "Đang tải dữ liệu từ tài khoản…"}</p></div>`;
+    main.innerHTML = `<div class="topbar"><h1>Sổ Chi Tiêu</h1></div><div class="card">${S.loadError
+      ? `<p style="margin:0 0 6px;font-weight:600">Chưa tải được dữ liệu từ tài khoản</p><p class="hint" style="margin:0 0 12px">${esc(S.loadError)}</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" type="button" data-act="retry-load">Thử lại</button><button class="btn" type="button" data-act="force-signout">Đăng xuất</button></div>`
+      : `<p class="hint" style="margin:0">Đang tải dữ liệu từ tài khoản…</p>`}</div>`;
     return;
   }
   const a = document.activeElement, aid = a && a.id && main.contains(a) ? a.id : null;
@@ -1293,6 +1306,8 @@ const actions = {
   "cycle-color": el => { const c = catById(el.dataset.id); if (!c) return; c.color = ((c.color ?? 0) + 1) % 9; saveSettings(); render(); },
   "add-cat": el => { S.settings.categories.push({ id: "c-" + newId(), name: "Danh mục mới", type: el.dataset.type, color: nextColor(cats(el.dataset.type)) }); saveSettings(); render(); const ins = document.querySelectorAll("[data-cname]"); const id = S.settings.categories[S.settings.categories.length - 1].id; const inp = document.getElementById("cn-" + id); if (inp) { inp.focus(); inp.select(); } },
   "del-cat": el => { const c = catById(el.dataset.id); if (!c) return; confirmBox("Xóa danh mục “" + esc(c.name) + "”?", "Danh mục chưa có giao dịch nào nên có thể xóa an toàn.", "Xóa", () => { S.settings.categories = S.settings.categories.filter(x => x.id !== c.id); delete S.settings.budgets[c.id]; saveSettings(); render(); }); },
+  "retry-load": () => { S.loadError = null; render(); startSyncRetry(); },
+  "force-signout": async () => { try { await sb.auth.signOut(); } catch (e) {} try { localStorage.removeItem(cacheKey()); } catch (e) {} uid = null; S.auth = "signedout"; S.loadError = null; goLocal(); },
   "auth-tab": el => { S.authTab = el.dataset.v; S.authMsg = ""; render(); },
   "auth-skip": () => { S.skipLogin = true; try { localStorage.setItem(SKIP_KEY, "1"); } catch (e) {} render(); },
   "auth-show": () => { S.skipLogin = false; try { localStorage.removeItem(SKIP_KEY); } catch (e) {} render(); },
