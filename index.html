@@ -250,6 +250,10 @@ table.data th { color: var(--muted); font-weight: 500; font-size: 12.5px; }
 .sync-pill.off::before { background: var(--crit); }
 .sync-pill[hidden] { display: none; }
 .auth-wrap { display: grid; place-items: center; min-height: calc(100vh - 140px); }
+body.auth-mode .side, body.auth-mode .tabbar, body.auth-mode .fab { display: none !important; }
+body.auth-mode .app { grid-template-columns: 1fr; }
+body.auth-mode .main { max-width: none; padding: 24px 16px; }
+body.auth-mode .auth-wrap { min-height: calc(100vh - 48px); }
 .auth-card { width: 100%; max-width: 400px; padding: 24px; }
 .auth-card .lbl { display: block; font-size: 12.5px; color: var(--ink-2); font-weight: 500; margin: 12px 0 5px; }
 
@@ -1150,7 +1154,9 @@ function parseSigned(raw) { const s = String(raw).trim(); const neg = /^[-−]/.
 function render() {
   renderNav();
   const main = $("#main");
-  if (S.auth === "signedout" && !S.skipLogin) { main.innerHTML = viewLogin(); return; }
+  const authMode = S.auth === "signedout" && !S.skipLogin;
+  document.body.classList.toggle("auth-mode", authMode);
+  if (authMode) { main.innerHTML = viewLogin(); return; }
   if (S.mode === "loading" || !S.settings) {
     main.innerHTML = `<div class="topbar"><h1>Sổ Chi Tiêu</h1></div><div class="card"><p class="hint" style="margin:0">${S.loadError ? "Chưa tải được dữ liệu từ tài khoản. Kiểm tra mạng, ứng dụng sẽ tự thử lại." : "Đang tải dữ liệu từ tài khoản…"}</p></div>`;
     return;
