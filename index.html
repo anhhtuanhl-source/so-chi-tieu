@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Sổ Chi Tiêu</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -690,6 +690,11 @@ body.menu-open { overflow: hidden; }
 @media (max-width: 720px) {
   .dp-card { width: min(310px, calc(100vw - 16px)); }
   .dp-grid button { height: 38px; font-size: 15px; }
+}
+/* iPhone tự phóng to khi chữ trong ô nhập nhỏ hơn 16px: giữ tối thiểu 16px trên điện thoại */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+@media (max-width: 720px) {
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]), select, textarea { font-size: 16px !important; }
 }
 </style>
 </head>
