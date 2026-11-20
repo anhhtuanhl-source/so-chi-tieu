@@ -2030,6 +2030,12 @@ function loanNext(l) {
   for (const s of p.schedule) { if (paid >= s.principal - 1) { paid -= s.principal; continue; } return s; }
   return null;
 }
+// Thật sự quá hạn: ngày phải trả (kỳ tới hoặc hạn cuối) đã qua và chưa trả
+function loanLate(l) {
+  if (loanLeft(l) <= 0) return false;
+  const nx = loanNext(l), dd = nx ? nx.date : loanEndDate(l);
+  return !!dd && dd < todayStr();
+}
 function loanDue(l) {
   if (loanLeft(l) <= 0) return null;
   const nx = loanNext(l), dd = nx ? nx.date : loanEndDate(l);
@@ -2565,13 +2571,13 @@ function savingsLoanCard(walletTotal) {
   const fTotal = funds().reduce((a, f) => a + fundBal(f), 0);
   const owe = loans().filter(l => l.kind === "borrow").reduce((a, l) => a + loanRemaining(l), 0);
   const recv = loans().filter(l => l.kind === "lend").reduce((a, l) => a + loanRemaining(l), 0);
-  const overdue = loans().filter(l => { const d = loanDue(l); return d && d[0] === "crit"; }).length;
+  const lateB = loans().filter(l => l.kind === "borrow" && loanLate(l)).length, lateL = loans().filter(l => l.kind === "lend" && loanLate(l)).length;
   if (!funds().length && !loans().length) return `<div class="card"><div class="card-h"><h2>Tiết kiệm và vay</h2></div><p class="hint" style="margin:0 0 10px">Tạo quỹ cho các mục tiêu, ghi lại các khoản vay để không quên hạn trả.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" type="button" data-act="nav" data-v="tiet-kiem">Tạo quỹ</button><button class="btn sm" type="button" data-act="nav" data-v="vay">Ghi khoản vay</button></div></div>`;
   const net = walletTotal + fTotal + recv - owe;
   return `<div class="card"><div class="card-h"><h2>Tiết kiệm và vay</h2></div><div class="wallets">
     <div class="wallet-row"><span class="n"><button class="link-btn" type="button" data-act="nav" data-v="tiet-kiem">Các quỹ tiết kiệm (${funds().length})</button></span><span class="b">${fmt(fTotal)}</span></div>
-    <div class="wallet-row"><span class="n"><button class="link-btn" type="button" data-act="nav" data-v="vay">Đang nợ</button>${overdue ? ` <span class="pill crit">${overdue} quá hạn</span>` : ""}</span><span class="b ${owe ? "neg-bal" : ""}">${owe ? "−" : ""}${fmt(owe)}</span></div>
-    <div class="wallet-row"><span class="n"><button class="link-btn" type="button" data-act="nav" data-v="vay">Cho vay chưa thu</button></span><span class="b">${fmt(recv)}</span></div>
+    <div class="wallet-row"><span class="n"><button class="link-btn" type="button" data-act="nav" data-v="vay">Đang nợ</button>${lateB ? ` <span class="pill crit">${lateB} quá hạn</span>` : ""}</span><span class="b ${owe ? "neg-bal" : ""}">${owe ? "−" : ""}${fmt(owe)}</span></div>
+    <div class="wallet-row"><span class="n"><button class="link-btn" type="button" data-act="nav" data-v="vay">Cho vay chưa thu</button>${lateL ? ` <span class="pill warn">${lateL} quá hạn thu</span>` : ""}</span><span class="b">${fmt(recv)}</span></div>
     <div class="wallet-row" style="border-top:2px solid var(--line)"><span class="n"><b style="color:var(--ink)">Tài sản ròng</b><div class="hint">Ví + quỹ + cho vay − nợ</div></span><span class="b ${net < 0 ? "neg-bal" : ""}" style="font-size:16px">${net < 0 ? "−" : ""}${fmt(Math.abs(net))}</span></div>
   </div></div>`;
 }
@@ -2585,7 +2591,7 @@ function menuStat(k) {
   if (k === "giao-dich") return monthTx(mk).length + " giao dịch tháng này";
   if (k === "ngan-sach") { const b = budgetInfo(S.month); return b.limit ? (b.left >= 0 ? "Còn " : "Vượt ") + fmt(Math.abs(b.left)) : "Chưa đặt tháng này"; }
   if (k === "tiet-kiem") { const t = funds().reduce((a, f) => a + fundBal(f), 0); return funds().length ? funds().length + " quỹ · " + fmtShort(t) : "Tạo quỹ đầu tiên"; }
-  if (k === "vay") { const o = loans().filter(l => l.kind === "borrow").reduce((a, l) => a + loanRemaining(l), 0); const late = loans().filter(l => { const d = loanDue(l); return d && d[0] === "crit"; }).length; return late ? late + " khoản quá hạn" : o ? "Đang nợ " + fmtShort(o) : "Không có nợ"; }
+  if (k === "vay") { const o = loans().filter(l => l.kind === "borrow").reduce((a, l) => a + loanRemaining(l), 0); const late = loans().filter(l => l.kind === "borrow" && loanLate(l)).length; return late ? late + " khoản nợ quá hạn" : o ? "Đang nợ " + fmtShort(o) : "Không có nợ"; }
   if (k === "bao-cao") return "Thu chi theo tháng";
   if (k === "quet-anh") return "Tự đọc số tiền từ ảnh";
   if (k === "cai-dat") return "Ví, danh mục, sao lưu";
