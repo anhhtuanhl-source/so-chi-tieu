@@ -708,6 +708,54 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .pw-eye:hover { color: var(--ink); }
 .pw-eye[aria-pressed="false"] .pw-slash { display: none; }
 .brand-sm[data-act], .brand[data-act] { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+/* Ngân sách: so sánh tháng, tuần, tháng tới */
+.bc-list { display: flex; flex-direction: column; gap: 2px; }
+.bc-row + .bc-row { border-top: 1px solid var(--line); border-radius: 0; }
+.bc-row.on { border-radius: 10px; }
+.bc-row { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "m n n" "bars bars r"; align-items: center; gap: 4px 10px; width: 100%; padding: 8px 6px; border: 0; border-radius: 10px; background: none; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.bc-row.static { cursor: default; }
+.bc-row:not(.static):hover, .bc-row.on { background: var(--surface-2); }
+.bc-m { grid-area: m; font-weight: 600; font-size: 13px; display: flex; gap: 6px; align-items: baseline; line-height: 1.2; }
+.bc-m small { font-weight: 400; font-size: 11.5px; }
+.bc-bars { grid-area: bars; position: relative; height: 10px; background: var(--surface-2); border-radius: 5px; }
+.bc-row.on .bc-bars { background: var(--surface); }
+.bc-sp { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; background: var(--ink-2); max-width: 100%; }
+.bc-sp.good { background: var(--good); } .bc-sp.warn { background: var(--warn); } .bc-sp.crit { background: var(--crit); }
+.bc-lim { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--ink); border-radius: 1px; }
+.bc-n { grid-area: n; text-align: right; font-size: 13px; white-space: nowrap; display: flex; gap: 4px; justify-content: flex-end; }
+.bc-n .hint { font-size: 12px; }
+.bc-r { grid-area: r; justify-self: end; }
+.bc-r .pill { font-size: 11.5px; }
+.lg-sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.lg-sw.lg-line { width: 2px; height: 12px; border-radius: 1px; background: var(--ink); }
+.up-row { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.up-row:first-of-type { border-top: 0; }
+.chg-row { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "b nm chg" "b v v"; align-items: center; gap: 0 10px; padding: 7px 0; border-top: 1px solid var(--line); }
+.chg-row:first-of-type { border-top: 0; }
+.chg-row > :first-child { grid-area: b; }
+.chg-row .nm { grid-area: nm; font-weight: 600; font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chg-row .hint { grid-area: v; font-size: 12px; }
+.chg-row .chg { grid-area: chg; font-size: 13px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.chg.up { color: var(--crit); } .chg.down { color: var(--good); }
+.switch { position: relative; flex: none; width: 44px; height: 26px; border: 0; border-radius: 13px; background: var(--line); cursor: pointer; transition: background .15s; padding: 0; }
+.switch::after { content: ""; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .15s; }
+.switch[aria-checked="true"] { background: var(--accent); }
+.switch[aria-checked="true"]::after { transform: translateX(18px); }
+.switch.sm { width: 36px; height: 22px; }
+.switch.sm::after { width: 16px; height: 16px; }
+.switch.sm[aria-checked="true"]::after { transform: translateX(14px); }
+.sw-lbl { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+.sum-big { padding: 2px 0 8px; }
+.sum-big .num { font: 600 24px/1.2 var(--font-display); font-variant-numeric: tabular-nums; margin-top: 2px; }
+.sum-row { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
+.sum-row.off .sum-nm, .sum-row.off .sum-v, .sum-row.off .badge { opacity: .45; }
+.sum-row.off .sum-v { text-decoration: line-through; }
+.sum-nm { display: flex; flex-direction: column; min-width: 0; }
+.sum-nm b { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sum-nm .hint { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sum-v { font-weight: 600; font-size: 14px; white-space: nowrap; }
+.badge.sm { width: 28px; height: 28px; font-size: 12px; }
+.badge.sm svg { width: 16px; height: 16px; }
 </style>
 </head>
 <body>
@@ -1079,6 +1127,15 @@ function normalize(d) {
   s.funds = Array.isArray(s.funds) ? s.funds : [];
   s.prefs = s.prefs && typeof s.prefs === "object" ? s.prefs : {};
   s.budgetTotal = Number(s.budgetTotal) || 0;
+  s.mbudget = s.mbudget && typeof s.mbudget === "object" ? s.mbudget : {};
+  // Chuyển ngân sách cũ (một con số cho mọi tháng) thành ngân sách riêng của tháng hiện tại
+  const oldCats = Object.fromEntries(Object.entries(s.budgets || {}).filter(([, v]) => v > 0));
+  if (s.budgetTotal || Object.keys(oldCats).length) {
+    const k = todayStr().slice(0, 7), cur = s.mbudget[k] || { total: 0, cats: {} };
+    if (!cur.total) cur.total = s.budgetTotal;
+    cur.cats = Object.assign({}, oldCats, cur.cats || {});
+    s.mbudget[k] = cur; s.budgetTotal = 0; s.budgets = {}; needsMigrate = true;
+  }
   s.loans = Array.isArray(s.loans) ? s.loans : [];
   ["expense", "income"].forEach(type => {
     const list = s.categories.filter(c => c.type === type);
@@ -1531,7 +1588,7 @@ function contextTips() {
   const late = loans().filter(l => { const d = loanDue(l); return d && d[0] !== ""; });
   if (late.length) out.push(["ctx-loan", `Có ${late.length} khoản vay quá hạn hoặc sắp đến hạn. Kiểm tra mục Vay để không bị trễ.`]);
   const day = +todayStr().slice(8);
-  funds().forEach(f => { if (f.plan && day >= 20 && fundDepositedIn(f, cur) < f.plan) out.push(["ctx-fund-" + f.id, `Tháng này quỹ “${f.name}” còn thiếu ${fmt(f.plan - fundDepositedIn(f, cur))} so với kế hoạch nạp.`]); });
+  funds().forEach(f => { const n = fundNeed(f); if (n.perDay) out.push(["ctx-fund-" + f.id, `Quỹ “${f.name}” cần nạp khoảng ${fmt(n.perDay)} mỗi ngày trong ${n.days} ngày tới để kịp mục tiêu.`]); });
   return out;
 }
 function tipPool() {
@@ -1553,15 +1610,27 @@ function refreshTip() {
 }
 setInterval(() => { if (S.view === "tong-quan" && !prefs().tipsOff && document.visibilityState === "visible") { S.tipIdx = (S.tipIdx || 0) + 1; refreshTip(); } }, 5 * 60 * 1000);
 
-/* ---------- Ngân sách: một con số cho cả tháng ---------- */
+/* ---------- Ngân sách: mỗi tháng một con số riêng ---------- */
+// S.settings.mbudget = { "YYYY-MM": { total: số tiền cả tháng, cats: { idDanhMục: hạn mức } } }
+function budAll() { return S.settings.mbudget || (S.settings.mbudget = {}); }
+function budOf(key) { const b = budAll()[key]; return { total: (b && +b.total) || 0, cats: (b && b.cats) || {} }; }
+function budSet(key, patch) {
+  const all = budAll(), b = Object.assign({ total: 0, cats: {} }, all[key] || {}, patch);
+  if (!b.total && !Object.keys(b.cats || {}).length) delete all[key]; else all[key] = b;
+}
+function budCats(key) { return Object.entries(budOf(key).cats).filter(([id, v]) => v > 0 && catById(id)); }
+function budPrevKey(key) { for (let i = 1; i <= 24; i++) { const k = shiftMonth(key, -i); const b = budOf(k); if (b.total || budCats(k).length) return k; } return null; }
 function budgetInfo(key) {
-  const limit = S.settings.budgetTotal || 0;
+  const limit = budOf(key).total;
   const spent = totals(key).exp;
   const cur = todayStr().slice(0, 7);
   const [y, m] = key.split("-").map(Number), nd = new Date(y, m, 0).getDate();
-  const daysLeft = key === cur ? nd - +todayStr().slice(8) + 1 : key > cur ? nd : 0;
+  const day = key === cur ? +todayStr().slice(8) : key < cur ? nd : 0;
+  const daysLeft = key === cur ? nd - day + 1 : key > cur ? nd : 0;
   const left = limit - spent;
-  return { limit, spent, left, daysLeft, nd, perDay: daysLeft && left > 0 ? left / daysLeft : 0 };
+  // Dự báo: chi theo tốc độ hiện tại đến cuối tháng
+  const forecast = key === cur && day >= 3 ? Math.round(spent / day * nd) : key < cur ? spent : 0;
+  return { limit, spent, left, daysLeft, nd, day, forecast, perDay: daysLeft && left > 0 ? left / daysLeft : 0, perDayPlan: limit ? limit / nd : 0 };
 }
 function avgSpend(n) { let s = 0, c = 0; for (let i = 1; i <= n; i++) { const e = totals(shiftMonth(todayStr().slice(0, 7), -i)).exp; if (e) { s += e; c++; } } return c ? Math.round(s / c / 100000) * 100000 : 0; }
 function budgetRing(b) {
@@ -1575,65 +1644,147 @@ function budgetRing(b) {
 }
 function budgetCard(key, compact) {
   const b = budgetInfo(key);
-  const acts = compact ? (b.limit ? '<button class="link" type="button" data-act="nav" data-v="ngan-sach">Chi tiết</button>' : "") : b.limit ? `<span class="card-acts"><button class="btn sm" type="button" data-act="bud-open">Sửa</button><button class="btn sm ghost danger" type="button" data-act="bud-del">Xóa</button></span>` : "";
-  return `<div class="card"><div class="card-h"><h2>Ngân sách tháng${b.limit ? `<span class="h-sub">${fmt(b.limit)}/tháng</span>` : ""}</h2>${acts}</div>${budgetSummary(key, compact)}</div>`;
+  const acts = compact ? (b.limit ? '<button class="link" type="button" data-act="nav" data-v="ngan-sach">Chi tiết</button>' : "") : b.limit ? `<span class="card-acts"><button class="btn sm" type="button" data-act="bud-open" data-k="${key}">Sửa</button><button class="btn sm ghost danger" type="button" data-act="bud-del" data-k="${key}">Xóa</button></span>` : "";
+  return `<div class="card"><div class="card-h"><h2>Ngân sách ${monthLabel(key).toLowerCase()}${b.limit ? `<span class="h-sub">${fmt(b.limit)}</span>` : ""}</h2>${acts}</div>${budgetSummary(key, compact)}</div>`;
 }
-function openBudgetModal() {
-  const cur = S.settings.budgetTotal || 0, avg = avgSpend(3);
-  openModal(`<h2>${cur ? "Sửa ngân sách tháng" : "Đặt ngân sách tháng"}</h2>
-    <p class="hint" style="margin:-6px 0 0">Mỗi tháng bạn được chi tối đa bao nhiêu? Áp dụng cho mọi tháng, mọi khoản chi đều tính vào đây.</p>
-    <label for="bm-amt">Số tiền mỗi tháng</label><input class="amount-in" id="bm-amt" inputmode="numeric" placeholder="Ví dụ 8.000.000" value="${cur ? fmtNum(cur) : ""}">
-    ${avg ? `<div class="chips" style="margin-top:8px"><button type="button" class="chip" id="bm-avg">Theo mức chi trung bình 3 tháng: ${fmt(avg)}</button></div>` : ""}
+function openBudgetModal(key) {
+  key = key || S.month;
+  const cur = budOf(key).total, avg = avgSpend(3), pk = budPrevKey(key), prev = pk ? budOf(pk).total : 0, last = totals(shiftMonth(key, -1)).exp;
+  const chips = [];
+  if (prev && prev !== cur) chips.push([prev, `Như ${monthShort(pk)}: ${fmt(prev)}`]);
+  if (last) chips.push([Math.round(last / 100000) * 100000, `Bằng số đã chi ${monthShort(shiftMonth(key, -1))}: ${fmt(Math.round(last / 100000) * 100000)}`]);
+  if (avg) chips.push([avg, `Trung bình 3 tháng: ${fmt(avg)}`]);
+  openModal(`<h2>Ngân sách ${monthLabel(key).toLowerCase()}</h2>
+    <p class="hint" style="margin:-6px 0 0">${monthLabel(key)} bạn được chi tối đa bao nhiêu? Chỉ áp dụng cho tháng này, mỗi tháng đặt một con số riêng.</p>
+    <label for="bm-amt">Số tiền được chi trong tháng</label><input class="amount-in" id="bm-amt" inputmode="numeric" placeholder="Ví dụ 8.000.000" value="${cur ? fmtNum(cur) : ""}">
+    ${chips.length ? `<div class="chips" style="margin-top:8px">${chips.map(([v, t]) => `<button type="button" class="chip" data-bmv="${v}">${t}</button>`).join("")}</div>` : ""}
     <div class="err" id="bm-err"></div>
-    <div class="modal-actions">${cur ? `<button class="btn danger" type="button" id="bm-del">Xóa ngân sách</button>` : ""}<span class="sp"></span><button class="btn" type="button" data-act="close-modal">Hủy</button><button class="btn primary" type="button" id="bm-ok">Lưu</button></div>`);
+    <div class="modal-actions">${cur ? `<button class="btn danger" type="button" id="bm-del">Xóa</button>` : ""}<span class="sp"></span><button class="btn" type="button" data-act="close-modal">Hủy</button><button class="btn primary" type="button" id="bm-ok">Lưu</button></div>`);
   wireAmount($("#bm-amt"));
-  if ($("#bm-avg")) $("#bm-avg").onclick = () => { $("#bm-amt").value = fmtNum(avg); };
-  const ok = () => { const v = parseAmount($("#bm-amt").value); if (!v) { $("#bm-err").textContent = "Nhập số tiền lớn hơn 0."; return; } S.settings.budgetTotal = v; saveSettings(); closeModal(); render(); toast("Đã lưu ngân sách " + fmt(v) + "/tháng"); };
+  $("#modal").querySelectorAll("[data-bmv]").forEach(x => x.onclick = () => { $("#bm-amt").value = fmtNum(+x.dataset.bmv); });
+  const ok = () => { const v = parseAmount($("#bm-amt").value); if (!v) { $("#bm-err").textContent = "Nhập số tiền lớn hơn 0."; return; } budSet(key, { total: v }); saveSettings(); closeModal(); render(); toast("Đã đặt ngân sách " + monthLabel(key).toLowerCase() + ": " + fmt(v)); };
   $("#bm-ok").onclick = ok;
   $("#bm-amt").addEventListener("keydown", e => { if (e.key === "Enter") ok(); });
-  if ($("#bm-del")) $("#bm-del").onclick = () => { closeModal(); actions["bud-del"](); };
+  if ($("#bm-del")) $("#bm-del").onclick = () => { closeModal(); actions["bud-del"]({ dataset: { k: key } }); };
   setTimeout(() => $("#bm-amt")?.focus(), 30);
 }
 function budgetSummary(key, compact) {
   const b = budgetInfo(key);
-  if (!b.limit) return `<p class="hint" style="margin:0 0 10px">Đặt một con số: mỗi tháng bạn được chi bao nhiêu. Sổ sẽ tính mỗi ngày còn được tiêu bao nhiêu.</p><button class="btn sm primary" type="button" data-act="bud-open">Đặt ngân sách</button>`;
+  if (!b.limit) {
+    const pk = budPrevKey(key);
+    return `<p class="hint" style="margin:0 0 10px">${monthLabel(key)} chưa có ngân sách. Đặt số tiền được chi cho riêng tháng này, sổ sẽ tính mỗi ngày còn được tiêu bao nhiêu.</p><div class="chips"><button class="btn sm primary" type="button" data-act="bud-open" data-k="${key}">Đặt ngân sách</button>${pk && !compact ? `<button class="btn sm" type="button" data-act="bud-copy" data-k="${key}">Chép từ ${monthShort(pk)} (${fmt(budOf(pk).total)})</button>` : ""}</div>`;
+  }
   const over = b.left < 0;
   const st = over ? "crit" : b.spent / b.limit >= 0.8 ? "warn" : "good";
-  const sub = over ? `Vượt ${fmt(-b.left)}` : b.daysLeft ? `Mỗi ngày còn ~${fmtShort(b.perDay)} · ${b.daysLeft} ngày` : "Tháng đã kết thúc";
+  const sub = over ? `Vượt ${fmt(-b.left)}` : b.daysLeft ? `Mỗi ngày còn ~${fmt(Math.floor(b.perDay / 1000) * 1000)} · ${b.daysLeft} ngày` : "Tháng đã kết thúc";
+  let fc = "";
+  if (!compact && b.forecast && b.day < b.nd) {
+    const fo = b.forecast - b.limit;
+    fc = `<div class="hint" style="margin-top:6px">Chi theo tốc độ hiện tại, cuối tháng sẽ khoảng <b class="num">${fmt(b.forecast)}</b> · <span style="color:var(--${fo > 0 ? "crit" : "good"})">${fo > 0 ? "vượt " + fmt(fo) : "dư " + fmt(-fo)}</span></div>`;
+  }
   return `<div class="bsum">${budgetRing(b)}<div class="bsum-t">
     <div class="hint">${over ? "Đã vượt" : "Còn được chi"}</div><div class="bsum-v ${over ? "neg-bal" : ""}">${fmt(Math.abs(b.left))}</div>
     <span class="pill ${st}">${sub}</span>
-    <div class="hint" style="margin-top:6px">Đã chi ${fmtShort(b.spent)} / ${fmtShort(b.limit)}</div></div></div>
+    <div class="hint" style="margin-top:6px">Đã chi ${fmt(b.spent)} / ${fmt(b.limit)}</div>${fc}</div></div>
     ${compact && !isMobile() ? trackedRows(key, 3) : ""}`;
 }
 function trackedRows(key, max) {
   const sp = spendByCat([key]);
-  const rows = Object.entries(S.settings.budgets).filter(([id, v]) => v > 0 && catById(id)).map(([id, lim]) => ({ id, lim, sp: sp[id] || 0 })).sort((a, b) => b.sp / b.lim - a.sp / a.lim);
-  return rows.slice(0, max || 99).map(r => { const [st, txt] = statusOf(r.sp, r.lim); return `<div class="trk"><div class="trk-h">${catBadge(r.id, "sm")}<span class="nm">${esc(catName(r.id))}</span><span class="pill ${st}">${txt}</span>${max ? "" : `<button type="button" class="icon-btn" data-act="trk-edit" data-id="${esc(r.id)}" aria-label="Sửa hạn mức" title="Sửa">✎</button><button type="button" class="icon-btn" data-act="trk-del" data-id="${esc(r.id)}" aria-label="Xóa" title="Xóa">✕</button>`}</div><div class="track"><div class="fill ${st}" style="width:${Math.min(100, r.sp / r.lim * 100)}%"></div></div><div class="hint">${fmtShort(r.sp)} / ${fmtShort(r.lim)}</div></div>`; }).join("");
+  const rows = budCats(key).map(([id, lim]) => ({ id, lim, sp: sp[id] || 0 })).sort((a, b) => b.sp / b.lim - a.sp / a.lim);
+  return rows.slice(0, max || 99).map(r => { const [st, txt] = statusOf(r.sp, r.lim); return `<div class="trk"><div class="trk-h">${catBadge(r.id, "sm")}<span class="nm">${esc(catName(r.id))}</span><span class="pill ${st}">${txt}</span>${max ? "" : `<button type="button" class="icon-btn" data-act="trk-edit" data-id="${esc(r.id)}" aria-label="Sửa hạn mức" title="Sửa">✎</button><button type="button" class="icon-btn" data-act="trk-del" data-id="${esc(r.id)}" aria-label="Xóa" title="Xóa">✕</button>`}</div><div class="track"><div class="fill ${st}" style="width:${Math.min(100, r.sp / r.lim * 100)}%"></div></div><div class="hint">${fmt(r.sp)} / ${fmt(r.lim)}</div></div>`; }).join("");
+}
+/* So sánh ngân sách và số đã chi qua các tháng */
+function budCompareHtml() {
+  const cur = todayStr().slice(0, 7);
+  const keys = Array.from({ length: 6 }, (_, i) => shiftMonth(S.month, i - 4)); // 4 tháng trước, tháng đang xem, tháng sau
+  const data = keys.map(k => ({ k, lim: budOf(k).total, sp: k > cur ? 0 : totals(k).exp })).filter(d => d.lim || d.sp || d.k === S.month);
+  const max = Math.max(1, ...data.map(d => Math.max(d.lim, d.sp)));
+  const rows = data.map(d => {
+    const st = !d.lim ? "" : d.sp > d.lim ? "crit" : d.sp / d.lim >= 0.8 ? "warn" : "good";
+    const diff = d.lim ? d.lim - d.sp : 0;
+    const res = !d.lim ? `<span class="hint">Chưa đặt</span>` : d.k > cur ? `<span class="hint">Chưa tới</span>` : `<span class="pill ${st}">${diff >= 0 ? (d.k === cur ? "Còn " : "Dư ") + fmt(diff) : "Vượt " + fmt(-diff)}</span>`;
+    return `<button type="button" class="bc-row ${d.k === S.month ? "on" : ""}" data-act="cmp-pick" data-v="${d.k}">
+      <span class="bc-m">${monthShort(d.k)}</span>
+      <span class="bc-bars"><span class="bc-sp ${st}" style="width:${d.sp / max * 100}%"></span>${d.lim ? `<span class="bc-lim" style="left:${d.lim / max * 100}%"></span>` : ""}</span>
+      <span class="bc-n"><span class="num">${fmt(d.sp)}</span><span class="hint">/ ${d.lim ? fmt(d.lim) : "–"}</span></span>
+      <span class="bc-r">${res}</span></button>`;
+  }).join("");
+  const set = data.filter(d => d.lim && d.k < cur), okN = set.filter(d => d.sp <= d.lim).length;
+  return `<div class="card"><div class="card-h"><h2>So sánh các tháng</h2><span class="legend" style="margin:0"><span><i class="lg-sw" style="background:var(--good)"></i>Đã chi</span><span><i class="lg-sw lg-line"></i>Ngân sách</span></span></div>
+    <div class="bc-list">${rows}</div>
+    ${set.length ? `<p class="hint" style="margin:8px 0 0">${okN}/${set.length} tháng đã qua giữ được trong ngân sách.</p>` : ""}</div>`;
+}
+/* Đặt trước ngân sách cho các tháng tới */
+function budUpcomingHtml() {
+  const base = todayStr().slice(0, 7);
+  const keys = [0, 1, 2, 3].map(i => shiftMonth(base, i));
+  return `<div class="card"><div class="card-h"><h2>Ngân sách các tháng tới</h2></div>
+    ${keys.map(k => { const v = budOf(k).total; return `<div class="up-row"><span><b>${monthLabel(k)}</b>${k === base ? ' <span class="hint">(hiện tại)</span>' : ""}</span><span class="num ${v ? "" : "hint"}">${v ? fmt(v) : "Chưa đặt"}</span><button class="btn sm ${v ? "" : "primary"}" type="button" data-act="bud-open" data-k="${k}">${v ? "Sửa" : "Đặt"}</button></div>`; }).join("")}
+    <p class="hint" style="margin:8px 0 0">Mỗi tháng một con số riêng, ví dụ tháng có Tết hoặc đám cưới thì đặt cao hơn.</p></div>`;
+}
+/* Chi theo tuần trong tháng so với mức cho phép mỗi tuần */
+function budWeeksHtml(key) {
+  const b = budgetInfo(key);
+  const [y, m] = key.split("-").map(Number), nd = b.nd;
+  const byDay = new Array(nd + 1).fill(0);
+  monthTx(key).forEach(t => { if (t.type === "expense") byDay[+t.date.slice(8)] += t.amount; });
+  const weeks = []; for (let s = 1; s <= nd; s += 7) { const e = Math.min(nd, s + 6); let sp = 0; for (let d = s; d <= e; d++) sp += byDay[d]; weeks.push({ s, e, sp, lim: b.limit ? b.limit / nd * (e - s + 1) : 0 }); }
+  const max = Math.max(1, ...weeks.map(w => Math.max(w.sp, w.lim)));
+  const today = key === todayStr().slice(0, 7) ? +todayStr().slice(8) : key < todayStr().slice(0, 7) ? 99 : 0;
+  return `<div class="card"><div class="card-h"><h2>Chi theo tuần</h2>${b.limit ? `<span class="hint">Mức cho phép ~${fmt(Math.round(b.limit / nd * 7 / 1000) * 1000)}/tuần</span>` : ""}</div>
+    ${weeks.map((w, i) => { const st = !w.lim ? "" : w.sp > w.lim ? "crit" : w.sp / w.lim >= 0.8 ? "warn" : "good"; const fut = w.s > today; return `<div class="bc-row static"><span class="bc-m">Tuần ${i + 1}<small class="hint">${pad(w.s)}–${pad(w.e)}/${pad(m)}</small></span><span class="bc-bars"><span class="bc-sp ${st}" style="width:${w.sp / max * 100}%"></span>${w.lim ? `<span class="bc-lim" style="left:${w.lim / max * 100}%"></span>` : ""}</span><span class="bc-n"><span class="num">${fut ? "–" : fmt(w.sp)}</span></span><span class="bc-r">${fut || !w.lim ? "" : `<span class="pill ${st}">${w.sp > w.lim ? "Vượt " + fmt(w.sp - w.lim) : "Còn " + fmt(w.lim - w.sp)}</span>`}</span></div>`; }).join("")}
+    ${b.limit ? "" : `<p class="hint" style="margin:6px 0 0">Đặt ngân sách tháng để biết mỗi tuần được chi bao nhiêu.</p>`}</div>`;
+}
+/* Danh mục tăng / giảm so với tháng trước */
+function budChangesHtml(key) {
+  const a = spendByCat([key]), p = spendByCat([shiftMonth(key, -1)]);
+  const ids = [...new Set([...Object.keys(a), ...Object.keys(p)])].filter(id => id !== "_loanint");
+  const rows = ids.map(id => ({ id, a: a[id] || 0, p: p[id] || 0, d: (a[id] || 0) - (p[id] || 0) })).filter(r => r.d).sort((x, y) => Math.abs(y.d) - Math.abs(x.d)).slice(0, 5);
+  if (!rows.length) return `<div class="card"><div class="card-h"><h2>So với tháng trước</h2></div><p class="hint" style="margin:0">Chưa đủ dữ liệu để so sánh với ${monthLabel(shiftMonth(key, -1)).toLowerCase()}.</p></div>`;
+  return `<div class="card"><div class="card-h"><h2>So với tháng trước</h2><span class="hint">${monthShort(key)} so với ${monthShort(shiftMonth(key, -1))}</span></div>
+    ${rows.map(r => `<div class="chg-row">${catBadge(r.id, "sm")}<span class="nm">${esc(catName(r.id))}</span><span class="hint num">${fmt(r.p)} → ${fmt(r.a)}</span><span class="chg ${r.d > 0 ? "up" : "down"}">${r.d > 0 ? "▲ +" : "▼ −"}${fmt(Math.abs(r.d))}</span></div>`).join("")}</div>`;
 }
 function viewBudget() {
   const b = budgetInfo(S.month);
-  const tracked = Object.entries(S.settings.budgets).filter(([id, v]) => v > 0 && catById(id));
+  const tracked = budCats(S.month), pk = budPrevKey(S.month);
+  const copyBtn = !tracked.length && pk && budCats(pk).length ? `<button class="btn sm" type="button" data-act="trk-copy">Chép từ ${monthShort(pk)}</button>` : "";
   return sectionsPage("ngan-sach", sb => topbar("Ngân sách", true, sb), {
     total: () => budgetCard(S.month, false),
-    tracked: () => `<div class="card"><div class="card-h"><h2>Theo dõi riêng</h2>${tracked.length < 5 ? `<button class="btn sm" type="button" data-act="trk-add">+ Thêm</button>` : ""}</div>
-      ${tracked.length ? trackedRows(S.month) : `<p class="hint" style="margin:0">Không bắt buộc. Đặt hạn mức riêng cho 1–3 danh mục bạn hay chi quá tay, ví dụ Ăn uống.</p>`}</div>`
-  }, { total: () => b.limit ? "Còn được chi " + fmt(b.left) : "Chưa đặt", tracked: () => tracked.length + " danh mục" });
+    tracked: () => `<div class="card"><div class="card-h"><h2>Hạn mức theo danh mục</h2><span class="card-acts">${copyBtn}<button class="btn sm" type="button" data-act="trk-add">+ Thêm</button></span></div>
+      ${tracked.length ? trackedRows(S.month) : `<p class="hint" style="margin:0">Chưa có hạn mức nào cho ${monthLabel(S.month).toLowerCase()}. Đặt riêng cho những danh mục hay chi quá tay, ví dụ Ăn uống, Mua sắm.</p>`}</div>`,
+    weeks: () => budWeeksHtml(S.month),
+    compare: () => budCompareHtml(),
+    upcoming: () => budUpcomingHtml(),
+    changes: () => budChangesHtml(S.month)
+  }, {
+    total: () => b.limit ? (b.left >= 0 ? "Còn được chi " : "Vượt ") + fmt(Math.abs(b.left)) : "Chưa đặt",
+    tracked: () => tracked.length ? tracked.length + " danh mục" : "Chưa đặt",
+    weeks: () => b.limit ? "~" + fmt(Math.round(b.limit / b.nd * 7 / 1000) * 1000) + "/tuần" : "Theo tuần",
+    compare: () => "Ngân sách và số đã chi",
+    upcoming: () => { const n = shiftMonth(todayStr().slice(0, 7), 1), v = budOf(n).total; return monthShort(n) + ": " + (v ? fmt(v) : "chưa đặt"); },
+    changes: () => "Danh mục tăng / giảm"
+  });
 }
 function openTrackAdd(editId) {
-  const used = new Set(Object.keys(S.settings.budgets).filter(k => S.settings.budgets[k] > 0 && k !== editId));
+  const key = S.month, cur0 = budOf(key).cats;
+  const used = new Set(Object.keys(cur0).filter(k => cur0[k] > 0 && k !== editId));
   const list = cats("expense").filter(c => !used.has(c.id));
+  if (!list.length && !editId) { toast("Danh mục nào cũng đã có hạn mức"); return; }
   let sel = editId || list[0]?.id;
-  const cur = editId ? S.settings.budgets[editId] : 0;
-  openModal(`<h2>${editId ? "Sửa hạn mức " + esc(catName(editId)) : "Theo dõi riêng một danh mục"}</h2>
+  const cur = editId ? cur0[editId] : 0;
+  openModal(`<h2>${editId ? "Sửa hạn mức " + esc(catName(editId)) : "Hạn mức cho một danh mục"}</h2>
+    <p class="hint" style="margin:-6px 0 0">Áp dụng cho ${monthLabel(key).toLowerCase()}.</p>
     ${editId ? "" : `<label>Danh mục</label><div class="chips">${list.map(c => `<button type="button" class="chip ic" data-tc="${esc(c.id)}" aria-pressed="${c.id === sel}" style="--cc:${catColor(c.id)}">${iconSvg(catIcon(c.id))}${esc(c.name)}</button>`).join("")}</div>`}
-    <label for="tk-amt">Hạn mức mỗi tháng</label><input class="amount-in" id="tk-amt" inputmode="numeric" placeholder="0" value="${cur ? fmtNum(cur) : ""}">
+    <label for="tk-amt">Hạn mức trong tháng</label><input class="amount-in" id="tk-amt" inputmode="numeric" placeholder="0" value="${cur ? fmtNum(cur) : ""}">
+    <div class="hint" id="tk-last" style="margin-top:6px"></div>
     <div class="err" id="tk-err"></div>
     <div class="modal-actions">${editId ? `<button class="btn danger" type="button" id="tk-del">Xóa</button>` : ""}<span class="sp"></span><button class="btn" type="button" data-act="close-modal">Hủy</button><button class="btn primary" type="button" id="tk-ok">Lưu</button></div>`);
   wireAmount($("#tk-amt"));
-  $("#modal").querySelectorAll("[data-tc]").forEach(b => b.onclick = () => { sel = b.dataset.tc; $("#modal").querySelectorAll("[data-tc]").forEach(x => x.setAttribute("aria-pressed", x === b)); });
-  $("#tk-ok").onclick = () => { const v = parseAmount($("#tk-amt").value); if (!sel) return; if (!v) { $("#tk-err").textContent = "Nhập hạn mức lớn hơn 0."; return; } S.settings.budgets[sel] = v; saveSettings(); closeModal(); render(); toast("Đã lưu hạn mức " + catName(sel)); };
-  if ($("#tk-del")) $("#tk-del").onclick = () => { delete S.settings.budgets[editId]; saveSettings(); closeModal(); render(); toast("Đã bỏ theo dõi " + catName(editId)); };
+  const showLast = () => { const v = sel ? (spendByCat([shiftMonth(key, -1)])[sel] || 0) : 0; $("#tk-last").innerHTML = v ? `${monthLabel(shiftMonth(key, -1))} đã chi <b class="num">${fmt(v)}</b> cho ${esc(catName(sel))}` : ""; };
+  showLast();
+  $("#modal").querySelectorAll("[data-tc]").forEach(b => b.onclick = () => { sel = b.dataset.tc; $("#modal").querySelectorAll("[data-tc]").forEach(x => x.setAttribute("aria-pressed", x === b)); showLast(); });
+  $("#tk-ok").onclick = () => { const v = parseAmount($("#tk-amt").value); if (!sel) return; if (!v) { $("#tk-err").textContent = "Nhập hạn mức lớn hơn 0."; return; } const c = Object.assign({}, budOf(key).cats, { [sel]: v }); budSet(key, { cats: c }); saveSettings(); closeModal(); render(); toast("Đã lưu hạn mức " + catName(sel)); };
+  if ($("#tk-del")) $("#tk-del").onclick = () => { const c = Object.assign({}, budOf(key).cats); delete c[editId]; budSet(key, { cats: c }); saveSettings(); closeModal(); render(); toast("Đã bỏ hạn mức " + catName(editId)); };
   setTimeout(() => $("#tk-amt")?.focus(), 30);
 }
 
@@ -1720,9 +1871,9 @@ const BRAND_SVG = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGrad
 const PAGE_SECTIONS = {
   "tong-quan": OV_SECTIONS,
   "giao-dich": { compare: ["So sánh các tháng", 2], list: ["Danh sách giao dịch", 2] },
-  "ngan-sach": { total: ["Tháng này được chi", 1], tracked: ["Theo dõi riêng", 1] },
-  "tiet-kiem": { tiles: ["Số liệu chính", 2], funds: ["Các quỹ", 2] },
-  "vay": { tiles: ["Số liệu chính", 2], list: ["Danh sách khoản vay", 2] },
+  "ngan-sach": { total: ["Ngân sách tháng", 1], tracked: ["Hạn mức theo danh mục", 1], weeks: ["Chi theo tuần", 1], compare: ["So sánh các tháng", 2], upcoming: ["Ngân sách các tháng tới", 1], changes: ["So với tháng trước", 1] },
+  "tiet-kiem": { tiles: ["Số liệu chính", 2], sum: ["Cần nạp", 2], funds: ["Các quỹ", 2] },
+  "vay": { tiles: ["Số liệu chính", 2], sum: ["Cần trả", 2], list: ["Danh sách khoản vay", 2] },
   "bao-cao": { tiles: ["Số liệu chính", 2], monthly: ["Thu và chi theo tháng", 2], stack: ["Cơ cấu chi theo tháng", 2], balance: ["Tổng số dư cuối tháng", 2], cats: ["Chi theo danh mục", 1], table: ["Bảng số liệu", 1] }
 };
 function pageOrder(v) {
@@ -1734,7 +1885,7 @@ function pageHidden(v) { const p = prefs(); return ((p.hidden || {})[v]) || (v =
 function setPageOrder(v, keys) { const p = prefs(); p.order = Object.assign({}, p.order, { [v]: keys }); }
 function setPageHidden(v, arr) { const p = prefs(); p.hidden = Object.assign({}, p.hidden, { [v]: arr }); }
 const DRAG_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
-const MINI_DEFAULT = { "tong-quan": ["daily", "recent", "structure", "savings", "wallets"], "vay": ["tiles"], "bao-cao": ["stack", "balance", "cats", "table"], "tiet-kiem": [], "giao-dich": [], "ngan-sach": [] };
+const MINI_DEFAULT = { "tong-quan": ["daily", "recent", "structure", "savings", "wallets"], "vay": ["tiles"], "bao-cao": ["stack", "balance", "cats", "table"], "tiet-kiem": [], "giao-dich": [], "ngan-sach": ["weeks", "upcoming", "changes"] };
 const isMobile = () => window.matchMedia("(max-width: 720px)").matches;
 function secModes() { try { return JSON.parse(localStorage.getItem("so-chi-tieu-secmode") || "{}"); } catch (e) { return {}; } }
 function secMode(v, k) { const m = (secModes()[v] || {})[k]; if (m) return m; return isMobile() && (MINI_DEFAULT[v] || []).includes(k) ? "mini" : "full"; }
@@ -1936,7 +2087,7 @@ function loanListHtml() {
 
 let LM = null;
 function openLoanForm(l) {
-  LM = l ? JSON.parse(JSON.stringify(l)) : { kind: S.loanTab === "lend" ? "lend" : "borrow", person: "", amount: 0, date: todayStr(), due: "", months: 0, rate: 0, rateType: "none", method: "end", walletId: S.settings.wallets[0]?.id || "", note: "", payments: [] };
+  LM = l ? JSON.parse(JSON.stringify(l)) : { kind: S.loanTab === "lend" ? "lend" : "borrow", person: "", amount: 0, date: todayStr(), due: "", months: 0, rate: 0, rateType: "none", method: "end", walletId: "", note: "", payments: [] };
   LM.isEdit = !!l; LM.rateType = rateTypeOf(LM); LM.method = LM.method || "end";
   if (!LM.months && LM.method !== "end") LM.months = loanTermMonths(LM);
   const draw = () => {
@@ -2079,7 +2230,7 @@ function openLoanDetail(id) {
 }
 function viewLoans() {
   const owe = loans().filter(l => l.kind === "borrow").reduce((a, l) => a + loanRemaining(l), 0), recv = loans().filter(l => l.kind === "lend").reduce((a, l) => a + loanRemaining(l), 0);
-  return sectionsPage("vay", sb => topbar("Vay", false, sb), { tiles: loanTilesHtml, list: loanListHtml }, { tiles: () => [owe ? "Nợ " + fmt(owe) : "", recv ? "Cho vay " + fmt(recv) : ""].filter(Boolean).join(" · ") || "Không có khoản nào", list: () => loans().filter(l => loanLeft(l) > 0).length + " khoản đang mở" });
+  return sectionsPage("vay", sb => topbar("Vay", false, sb), { tiles: loanTilesHtml, sum: loanSumHtml, list: loanListHtml }, { sum: () => { const off = sumOff(), t = sumMode("vay") === "total"; const v = loans().filter(l => l.kind === "borrow" && loanLeft(l) > 0 && !off[l.id]).reduce((a, l) => a + (t ? loanRemaining(l) : loanDueThisMonth(l)), 0); return (t ? "Tổng " : "Tháng này ") + fmt(v); }, tiles: () => [owe ? "Nợ " + fmt(owe) : "", recv ? "Cho vay " + fmt(recv) : ""].filter(Boolean).join(" · ") || "Không có khoản nào", list: () => loans().filter(l => loanLeft(l) > 0).length + " khoản đang mở" });
 }
 /* ---------- Bộ chọn ngày dd/mm/yyyy ---------- */
 const CAL_IC = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
@@ -2160,7 +2311,8 @@ const monthsUntil = ds => { const t = todayStr(); const [y1, m1] = t.split("-").
 
 function loanInterestIn(key) {
   let inc = 0, exp = 0;
-  loans().forEach(l => (l.payments || []).forEach(p => { if (p.interest > 0 && p.date.slice(0, 7) === key) { if (l.kind === "borrow") exp += p.interest; else inc += p.interest; } }));
+  // Chỉ tính lãi đã trả/thu qua một ví; chọn "Không ghi vào ví" thì không ảnh hưởng thu chi
+  loans().forEach(l => (l.payments || []).forEach(p => { if (p.walletId && p.interest > 0 && p.date.slice(0, 7) === key) { if (l.kind === "borrow") exp += p.interest; else inc += p.interest; } }));
   return { inc, exp };
 }
 function fundDepositedIn(f, key) { return (f.entries || []).reduce((a, e) => a + (e.amount > 0 && e.date.slice(0, 7) === key ? e.amount : 0), 0); }
@@ -2219,6 +2371,15 @@ function monthPicker() {
 }
 
 /* ---------- Tiết kiệm ---------- */
+/* Còn thiếu bao nhiêu, còn mấy ngày, mỗi ngày cần nạp bao nhiêu */
+function fundNeed(f) {
+  const bal = fundBal(f), left = Math.max(0, (f.target || 0) - bal);
+  if (!f.target || !left) return { left: 0, days: 0, perDay: 0, late: false };
+  if (!f.deadline) return { left, days: 0, perDay: 0, late: false };
+  const days = daysBetween(todayStr(), f.deadline) + 1; // tính cả hôm nay
+  if (days <= 0) return { left, days: 0, perDay: 0, late: true };
+  return { left, days, perDay: Math.ceil(left / days / 1000) * 1000, late: false };
+}
 const FUND_TEMPLATES = ["Quỹ khẩn cấp", "Du lịch", "Mua sắm lớn", "Học tập", "Mua nhà", "Mua xe", "Cưới hỏi", "Biếu bố mẹ"];
 function fundCard(f) {
   const bal = fundBal(f), cc = `var(--c${f.color || 1})`;
@@ -2228,13 +2389,13 @@ function fundCard(f) {
     const done = bal >= f.target;
     goal = `<div class="bar-row" style="padding:2px 0"><span class="nm hint">${done ? "Đã đạt mục tiêu" : "Mục tiêu " + fmt(f.target)}</span><span class="val">${Math.floor(pct)}%</span><div class="track"><div class="fill" style="width:${pct}%;background:${cc}"></div></div></div>`;
     if (!done && f.deadline) {
-      const ml = monthsUntil(f.deadline);
-      goal += ml >= 1 ? `<div class="hint">Cần nạp ~<b class="num">${fmt(Math.ceil((f.target - bal) / ml / 1000) * 1000)}</b>/tháng để kịp ${fmtDate(f.deadline)}</div>` : `<div class="hint" style="color:var(--crit)">Đã qua hạn ${fmtDate(f.deadline)}, còn thiếu ${fmt(f.target - bal)}</div>`;
+      const n = fundNeed(f);
+      goal += n.late ? `<div class="hint" style="color:var(--crit)">Đã qua hạn ${fmtDate(f.deadline)}, còn thiếu ${fmt(n.left)}</div>` : `<div class="hint">Cần nạp ~<b class="num">${fmt(n.perDay)}</b>/ngày · còn ${n.days} ngày đến ${fmtDate(f.deadline)}</div>`;
     }
   }
   let plan = "";
-  if (f.plan) { const dep = fundDepositedIn(f, todayStr().slice(0, 7)); const st = dep >= f.plan ? "good" : "warn"; plan = `<span class="pill ${st}">Tháng này ${fmtShort(dep)}/${fmtShort(f.plan)}</span>`; }
-  else if (f.target && bal >= f.target) plan = `<span class="pill good">Hoàn thành</span>`;
+  if (f.target && bal >= f.target) plan = `<span class="pill good">Hoàn thành</span>`;
+  else if (f.target && f.deadline) { const n = fundNeed(f); plan = n.late ? `<span class="pill crit">Quá hạn</span>` : `<span class="pill ${n.days <= 7 ? "warn" : ""}">Còn ${n.days} ngày</span>`; }
   return `<div class="card fund" style="--cc:${cc}" data-act="open-fund" data-id="${esc(f.id)}" role="button" tabindex="0">
     <div class="fh"><span class="badge cc" style="--cc:${cc}">${iconSvg(f.icon || "piggy")}</span><div style="min-width:0;flex:1"><div class="t1" style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(f.name)}</div></div>${plan}</div>
     <div class="fb">${fmt(bal)}</div>${goal}
@@ -2245,14 +2406,64 @@ function viewFunds() {
   const total = list.reduce((a, f) => a + fundBal(f), 0);
   const mk = todayStr().slice(0, 7);
   const dep = list.reduce((a, f) => a + fundDepositedIn(f, mk), 0);
-  const planned = list.reduce((a, f) => a + (f.plan || 0), 0);
+  const perDay = list.reduce((a, f) => a + fundNeed(f).perDay, 0);
   const reached = list.filter(f => f.target && fundBal(f) >= f.target).length;
   const tiles = `<div class="grid tiles tiles3">
     <div class="card tile hero">${tileK("wallet", "#fff", "Tổng các quỹ")}<div class="v">${fmt(total)}</div><div class="s">${list.length} quỹ</div></div>
-    <div class="card tile inc">${tileK("inc", "var(--inc)", "Đã nạp tháng này")}<div class="v">${fmt(dep)}</div><div class="s">${planned ? "Kế hoạch " + fmtShort(planned) + "/tháng" : "Chưa có kế hoạch"}</div></div>
+    <div class="card tile inc">${tileK("inc", "var(--inc)", "Đã nạp tháng này")}<div class="v">${fmt(dep)}</div><div class="s">${perDay ? "Cần ~" + fmt(perDay) + "/ngày" : "Chưa có quỹ nào đặt hạn"}</div></div>
     <div class="card tile net">${tileK("net", "var(--c1)", "Đạt mục tiêu")}<div class="v">${reached}/${list.filter(f => f.target).length || 0}</div><div class="s">quỹ có đặt mục tiêu</div></div></div>`;
   const cards = list.map(fundCard).join("");
-  return sectionsPage("tiet-kiem", sb => topbar("Tiết kiệm", false, sb), { tiles: () => tiles, funds: () => (list.length ? "" : `<div class="banner"><span><b>Tạo quỹ cho từng mục tiêu.</b> Ví dụ quỹ khẩn cấp, du lịch, mua xe. Mỗi lần nạp, tiền được chuyển từ ví sang quỹ, nên số dư ví phản ánh đúng số tiền còn được tiêu.</span></div>`) + (cards ? `<div class="fund-grid">${cards}</div>` : "") }, { tiles: () => "Tổng các quỹ " + fmt(total), funds: () => list.length + " quỹ" });
+  return sectionsPage("tiet-kiem", sb => topbar("Tiết kiệm", false, sb), { tiles: () => tiles, sum: fundSumHtml, funds: () => (list.length ? "" : `<div class="banner"><span><b>Tạo quỹ cho từng mục tiêu.</b> Ví dụ quỹ khẩn cấp, du lịch, mua xe. Mỗi lần nạp, tiền được chuyển từ ví sang quỹ, nên số dư ví phản ánh đúng số tiền còn được tiêu.</span></div>`) + (cards ? `<div class="fund-grid">${cards}</div>` : "") }, { tiles: () => "Tổng các quỹ " + fmt(total), sum: () => { const off = sumOff(), t = sumMode("tiet-kiem") === "total"; const v = funds().filter(f => !off[f.id]).reduce((a, f) => a + (t ? fundNeed(f).left : fundDueThisMonth(f)), 0); return (t ? "Tổng " : "Tháng này ") + fmt(v); }, funds: () => list.length + " quỹ" });
+}
+
+/* ---------- Bật/tắt: xem tổng cần trả/nạp hoặc chỉ tháng này ---------- */
+const monthEnd = key => { const [y, m] = key.split("-").map(Number); return `${key}-${pad(new Date(y, m, 0).getDate())}`; };
+// Số phải trả (hoặc thu) của khoản vay tính đến hết tháng này, gồm cả kỳ đã quá hạn
+function loanDueThisMonth(l) {
+  const rem = loanRemaining(l); if (rem <= 0) return 0;
+  const p = loanPlan(l); if (!p || !p.schedule.length) return 0;
+  const end = monthEnd(todayStr().slice(0, 7));
+  const sched = p.schedule.filter(x => x.date <= end).reduce((a, x) => a + x.pay, 0);
+  return Math.max(0, Math.min(rem, sched - loanPaidAll(l)));
+}
+// Số cần nạp vào quỹ trong phần còn lại của tháng này để kịp hạn
+function fundDueThisMonth(f) {
+  const n = fundNeed(f); if (!n.left) return 0;
+  if (n.late) return n.left;
+  if (!n.perDay) return 0;
+  const end = monthEnd(todayStr().slice(0, 7)), stop = f.deadline < end ? f.deadline : end;
+  return Math.min(n.left, n.perDay * (daysBetween(todayStr(), stop) + 1));
+}
+function sumMode(v) { try { return (JSON.parse(localStorage.getItem("so-chi-tieu-summode") || "{}")[v]) || "total"; } catch (e) { return "total"; } }
+function setSumMode(v, m) { let o = {}; try { o = JSON.parse(localStorage.getItem("so-chi-tieu-summode") || "{}"); } catch (e) {} o[v] = m; try { localStorage.setItem("so-chi-tieu-summode", JSON.stringify(o)); } catch (e) {} }
+const sumOff = () => prefs().sumOff || (prefs().sumOff = {});
+function sumCard(v, title, items, emptyTxt) {
+  const total = sumMode(v) === "total", off = sumOff(), mLabel = monthLabel(todayStr().slice(0, 7));
+  const on = items.filter(it => !off[it.id]);
+  const val = it => total ? it.total : it.month;
+  const sum = on.reduce((a, it) => a + val(it), 0);
+  const rows = items.map(it => { const x = val(it), isOn = !off[it.id]; return `<div class="sum-row ${isOn ? "" : "off"}">
+      <span class="badge cc sm" style="--cc:${it.cc}">${it.ic ? iconSvg(it.ic) : esc((it.name || "?").trim().charAt(0).toUpperCase())}</span>
+      <span class="sum-nm"><b>${esc(it.name)}</b><span class="hint">${it.sub}</span></span>
+      <span class="num sum-v">${x ? fmt(x) : "–"}</span>
+      <button type="button" class="switch sm" role="switch" aria-checked="${isOn}" data-act="sum-item" data-id="${esc(it.id)}" aria-label="${isOn ? "Bỏ" : "Cộng"} ${esc(it.name)} ${isOn ? "khỏi" : "vào"} tổng"></button></div>`; }).join("");
+  return `<div class="card sum-card"><div class="card-h"><h2>${title}</h2>
+      <label class="sw-lbl"><span>${total ? "Tổng tất cả" : "Chỉ " + mLabel.toLowerCase()}</span><button type="button" class="switch" role="switch" aria-checked="${total}" data-act="sum-mode" data-v="${v}" aria-label="Bật để xem tổng, tắt để xem tháng này"></button></label></div>
+    ${items.length ? `<div class="sum-big"><span class="hint">${total ? "Tổng" : mLabel} · ${on.length}/${items.length} khoản đang bật</span><div class="num">${fmt(sum)}</div></div>${rows}` : `<p class="hint" style="margin:0">${emptyTxt}</p>`}</div>`;
+}
+function loanSumHtml() {
+  const items = loans().filter(l => l.kind === "borrow" && loanLeft(l) > 0).map(l => {
+    const nx = loanNext(l), dd = nx ? nx.date : loanEndDate(l), m = loanDueThisMonth(l);
+    return { id: l.id, name: l.person, cc: "var(--c8)", total: loanRemaining(l), month: m, sub: dd ? (nx ? "Kỳ tới " : "Hạn ") + fmtDate(dd) : "Không có hạn" };
+  });
+  return sumCard("vay", "Cần trả", items, "Không có khoản đi vay nào đang mở.");
+}
+function fundSumHtml() {
+  const items = funds().filter(f => fundNeed(f).left > 0).map(f => {
+    const n = fundNeed(f);
+    return { id: f.id, name: f.name, ic: f.icon || "piggy", cc: `var(--c${f.color || 1})`, total: n.left, month: fundDueThisMonth(f), sub: n.late ? "Đã quá hạn" : n.perDay ? `~${fmt(n.perDay)}/ngày · hạn ${fmtDate(f.deadline).slice(0, 5)}` : "Không có hạn" };
+  });
+  return sumCard("tiet-kiem", "Cần nạp", items, "Chưa có quỹ nào còn thiếu so với mục tiêu.");
 }
 
 let FM = null;
@@ -2264,13 +2475,15 @@ function openFundForm(f) {
     <label for="fd-name">Tên quỹ</label><input class="field" id="fd-name" maxlength="40" value="${esc(FM.name)}" placeholder="Ví dụ: Du lịch Đà Lạt">
     <div class="row2"><div><label for="fd-target">Mục tiêu (không bắt buộc)</label><input class="field r" id="fd-target" inputmode="numeric" value="${FM.target ? fmtNum(FM.target) : ""}" placeholder="vd 20.000.000"></div>
     <div><label>Hạn hoàn thành</label>${dateField("fd-deadline", FM.deadline || "", { clear: true, placeholder: "Không bắt buộc" })}</div></div>
-    <div class="row2"><div><label for="fd-plan">Kế hoạch nạp mỗi tháng</label><input class="field r" id="fd-plan" inputmode="numeric" value="${FM.plan ? fmtNum(FM.plan) : ""}" placeholder="vd 2.000.000"></div>
-    <div><label for="fd-wallet">Ví nạp mặc định</label><select class="field" id="fd-wallet">${walletOpts(FM.walletId)}</select></div></div>
+    <div class="hint" id="fd-need" style="margin-top:6px"></div>
+    <label for="fd-wallet">Ví nạp mặc định</label><select class="field" id="fd-wallet">${walletOpts(FM.walletId)}</select>
     <label>Màu</label>${swatches(FM.color)}
     <label>Biểu tượng</label>${iconPickerHtml(FM.icon || "piggy")}
     <div class="err" id="fd-err"></div>
     <div class="modal-actions"><span class="sp"></span><button class="btn" type="button" id="fd-cancel">Hủy</button><button class="btn primary" type="button" id="fd-save">${f ? "Lưu" : "Tạo quỹ"}</button></div>`);
-  wireAmount($("#fd-target")); wireAmount($("#fd-plan"));
+  wireAmount($("#fd-target"));
+  const showNeed = () => { const t = parseAmount($("#fd-target").value), dl = $("#fd-deadline").value; const n = t && dl ? fundNeed({ target: t, deadline: dl, entries: FM.entries || [] }) : null; $("#fd-need").innerHTML = n && n.left ? (n.late ? "Hạn đã qua." : `Cần nạp ~<b class="num">${fmt(n.perDay)}</b>/ngày trong ${n.days} ngày để đạt mục tiêu.`) : ""; };
+  $("#fd-target").addEventListener("input", showNeed); $("#fd-deadline").addEventListener("change", showNeed); showNeed();
   $("#modal").querySelectorAll("[data-tpl]").forEach(b => b.onclick = () => { $("#fd-name").value = b.dataset.tpl; $("#fd-name").focus(); });
   $("#modal").querySelectorAll("[data-fi]").forEach(b => b.onclick = () => { FM.icon = b.dataset.fi; $("#modal").querySelectorAll("[data-fi]").forEach(x => x.setAttribute("aria-pressed", x === b)); });
   $("#modal").querySelectorAll("[data-tpl]").forEach(b => b.addEventListener("click", () => { const k = guessIcon(b.dataset.tpl); const map = { "Quỹ khẩn cấp": "shield", "Du lịch": "plane", "Mua sắm lớn": "bag", "Học tập": "book", "Mua nhà": "home", "Mua xe": "car", "Cưới hỏi": "heart", "Biếu bố mẹ": "family" }; FM.icon = map[b.dataset.tpl] || k; $("#modal").querySelectorAll("[data-fi]").forEach(x => x.setAttribute("aria-pressed", x.dataset.fi === FM.icon)); }));
@@ -2279,7 +2492,7 @@ function openFundForm(f) {
   $("#fd-save").onclick = () => {
     const name = $("#fd-name").value.trim();
     if (!name) { $("#fd-err").textContent = "Đặt tên cho quỹ."; return; }
-    const rec = { id: FM.id || "f-" + newId(), name, target: parseAmount($("#fd-target").value), deadline: $("#fd-deadline").value || "", plan: parseAmount($("#fd-plan").value), color: FM.color, icon: FM.icon || "piggy", walletId: $("#fd-wallet").value, createdAt: FM.createdAt || Date.now(), entries: FM.entries || [] };
+    const rec = { id: FM.id || "f-" + newId(), name, target: parseAmount($("#fd-target").value), deadline: $("#fd-deadline").value || "", plan: 0, color: FM.color, icon: FM.icon || "piggy", walletId: $("#fd-wallet").value, createdAt: FM.createdAt || Date.now(), entries: FM.entries || [] };
     if (FM.isEdit) { const i = funds().findIndex(x => x.id === rec.id); funds()[i] = rec; } else funds().push(rec);
     saveSettings(); closeModal(); render(); toast(FM && FM.isEdit ? "Đã lưu quỹ" : "Đã tạo quỹ " + name);
   };
@@ -2293,7 +2506,7 @@ function openFundMoney(id, withdraw) {
   openModal(`<h2>${withdraw ? "Rút từ quỹ" : "Nạp vào quỹ"} ${esc(f.name)}</h2>
     <p class="hint" style="margin:-8px 0 0">Số dư quỹ: <b class="num">${fmt(bal)}</b>${f.target && !withdraw ? ` · còn thiếu ${fmt(Math.max(0, f.target - bal))} để đạt mục tiêu` : ""}</p>
     <label for="fm-amt">Số tiền</label><input class="amount-in" id="fm-amt" inputmode="numeric" autocomplete="off" placeholder="0">
-    ${!withdraw && f.plan ? `<div class="chips" style="margin-top:8px"><button type="button" class="chip" data-fill="${f.plan}">Theo kế hoạch ${fmtShort(f.plan)}</button>${f.target && f.target > bal ? `<button type="button" class="chip" data-fill="${f.target - bal}">Nạp đủ mục tiêu</button>` : ""}</div>` : withdraw ? `<div class="chips" style="margin-top:8px"><button type="button" class="chip" data-fill="${bal}">Rút toàn bộ</button></div>` : ""}
+    ${!withdraw && f.target && f.target > bal ? (() => { const n = fundNeed(f), opt = []; if (n.perDay) [[1, "1 ngày"], [7, "1 tuần"], [30, "30 ngày"]].forEach(([d, t]) => { const v = Math.min(n.left, n.perDay * d); if (v < n.left) opt.push(`<button type="button" class="chip" data-fill="${v}">${t}: ${fmt(v)}</button>`); }); opt.push(`<button type="button" class="chip" data-fill="${n.left}">Nạp đủ mục tiêu: ${fmt(n.left)}</button>`); return `<div class="chips" style="margin-top:8px">${opt.join("")}</div>`; })() : withdraw ? `<div class="chips" style="margin-top:8px"><button type="button" class="chip" data-fill="${bal}">Rút toàn bộ</button></div>` : ""}
     <div class="row2"><div><label for="fm-w">${withdraw ? "Rút về ví" : "Lấy tiền từ ví"}</label><select class="field" id="fm-w">${walletOpts(f.walletId || S.settings.wallets[0]?.id)}</select></div>
     <div><label>Ngày</label>${dateField("fm-date", todayStr())}</div></div>
     <div class="hint" id="fm-wb"></div>
@@ -2326,7 +2539,7 @@ function openFundDetail(id) {
   openModal(`<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span class="badge cc" style="--cc:${cc}">${iconSvg(f.icon || "piggy")}</span><h2 style="margin:0">${esc(f.name)}</h2></div>
     <div class="fb" style="font:600 26px var(--font-display);margin:6px 0">${fmt(bal)}</div>
     ${f.target ? `<div class="bar-row" style="padding:0"><span class="nm hint">Mục tiêu ${fmt(f.target)}${f.deadline ? " · hạn " + fmtDate(f.deadline) : ""}</span><span class="val">${Math.floor(Math.min(100, bal / f.target * 100))}%</span><div class="track"><div class="fill" style="width:${Math.min(100, bal / f.target * 100)}%;background:${cc}"></div></div></div>` : ""}
-    ${f.plan ? `<p class="hint" style="margin:6px 0 0">Kế hoạch nạp ${fmt(f.plan)}/tháng · tháng này đã nạp ${fmt(fundDepositedIn(f, todayStr().slice(0, 7)))}</p>` : ""}
+    ${(() => { const n = fundNeed(f); return n.perDay ? `<p class="hint" style="margin:6px 0 0">Cần nạp ~<b class="num">${fmt(n.perDay)}</b>/ngày · còn ${n.days} ngày đến ${fmtDate(f.deadline)} · tháng này đã nạp ${fmt(fundDepositedIn(f, todayStr().slice(0, 7)))}</p>` : ""; })()}
     <div style="display:flex;gap:8px;margin:14px 0 6px;flex-wrap:wrap"><button class="btn primary sm" type="button" id="fdd-dep">+ Nạp</button><button class="btn sm" type="button" id="fdd-wd" ${bal <= 0 ? "disabled" : ""}>Rút</button><button class="btn sm" type="button" id="fdd-edit">Sửa quỹ</button><span class="sp" style="flex:1"></span><button class="btn sm ghost danger" type="button" id="fdd-del">Xóa quỹ</button></div>
     <label>Lịch sử</label><div class="hist">${rows}</div>
     <div class="modal-actions"><span class="sp"></span><button class="btn" type="button" id="fdd-close">Đóng</button></div>`);
@@ -2370,7 +2583,7 @@ function menuStat(k) {
   const mk = todayStr().slice(0, 7);
   if (k === "tong-quan") { const b = Object.values(walletBalances()).reduce((a, x) => a + x, 0); return "Số dư " + fmtShort(b); }
   if (k === "giao-dich") return monthTx(mk).length + " giao dịch tháng này";
-  if (k === "ngan-sach") { const n = Object.values(S.settings.budgets).filter(v => v > 0).length; return n ? n + " danh mục có hạn mức" : "Chưa đặt hạn mức"; }
+  if (k === "ngan-sach") { const b = budgetInfo(S.month); return b.limit ? (b.left >= 0 ? "Còn " : "Vượt ") + fmt(Math.abs(b.left)) : "Chưa đặt tháng này"; }
   if (k === "tiet-kiem") { const t = funds().reduce((a, f) => a + fundBal(f), 0); return funds().length ? funds().length + " quỹ · " + fmtShort(t) : "Tạo quỹ đầu tiên"; }
   if (k === "vay") { const o = loans().filter(l => l.kind === "borrow").reduce((a, l) => a + loanRemaining(l), 0); const late = loans().filter(l => { const d = loanDue(l); return d && d[0] === "crit"; }).length; return late ? late + " khoản quá hạn" : o ? "Đang nợ " + fmtShort(o) : "Không có nợ"; }
   if (k === "bao-cao") return "Thu chi theo tháng";
@@ -2549,14 +2762,6 @@ function viewOverview() {
 
   const walletsHtml = S.settings.wallets.map((w, i) => `<div class="wallet-row"><span class="n" style="display:flex;align-items:center;gap:8px"><span class="dot" style="--cc:var(--c${(i % 8) + 1})"></span>${esc(w.name)}</span><span class="b ${bal[w.id] < 0 ? "neg-bal" : ""}">${bal[w.id] < 0 ? "−" : ""}${fmt(Math.abs(bal[w.id] || 0))}</span></div>`).join("");
 
-  const budgets = Object.entries(S.settings.budgets).filter(([id, v]) => v > 0 && catById(id));
-  let budgetHtml;
-  if (budgets.length) {
-    budgetHtml = budgets.map(([id, lim]) => ({ id, lim, sp: sp[id] || 0 })).sort((a, b) => b.sp / b.lim - a.sp / a.lim).slice(0, 5).map(b => {
-      const [st, txt] = statusOf(b.sp, b.lim);
-      return `<div class="bar-row"><span class="nm" style="display:flex;align-items:center;gap:8px"><span class="dot" style="--cc:${catColor(b.id)}"></span>${esc(catName(b.id))}</span><span class="pill ${st}">${txt}</span><div class="track"><div class="fill ${st}" style="width:${Math.min(100, b.sp / b.lim * 100)}%"></div></div></div>`;
-    }).join("");
-  } else budgetHtml = `<p class="hint" style="margin:0 0 10px">Đặt hạn mức cho từng danh mục để biết khi nào sắp chi quá tay.</p><button class="btn sm" type="button" data-act="nav" data-v="ngan-sach">Đặt ngân sách</button>`;
 
   const card = (title, link, body) => `<div class="card"><div class="card-h"><h2>${title}</h2>${link || ""}</div>${body}</div>`;
   const secs = {
@@ -3007,13 +3212,15 @@ const actions = {
   "tips-toggle": () => { prefs().tipsOff = !prefs().tipsOff; saveSettings(); render(); },
   "tips-reset": () => { prefs().tipsDismissed = []; saveSettings(); toast("Đã khôi phục các gợi ý"); render(); },
   "ov-reset": () => { const p = prefs(); p.ovOrder = []; p.ovHidden = []; p.menuOrder = []; p.order = {}; p.hidden = {}; saveSettings(); toast("Đã khôi phục thứ tự mặc định"); render(); },
-  "bud-open": () => openBudgetModal(),
-  "bud-del": () => confirmBox("Xóa ngân sách tháng?", "Sổ sẽ không còn tính số tiền còn được chi mỗi ngày. Bạn có thể đặt lại bất cứ lúc nào.", "Xóa", () => { S.settings.budgetTotal = 0; saveSettings(); render(); toast("Đã xóa ngân sách tháng"); }),
+  "bud-open": el => openBudgetModal(el && el.dataset && el.dataset.k),
+  "bud-del": el => { const k = (el && el.dataset && el.dataset.k) || S.month; confirmBox("Xóa ngân sách " + monthLabel(k).toLowerCase() + "?", "Chỉ xóa con số của tháng này. Các tháng khác và hạn mức theo danh mục giữ nguyên.", "Xóa", () => { budSet(k, { total: 0 }); saveSettings(); render(); toast("Đã xóa ngân sách " + monthLabel(k).toLowerCase()); }); },
+  "bud-copy": el => { const k = el.dataset.k || S.month, pk = budPrevKey(k); if (!pk) return; budSet(k, { total: budOf(pk).total }); saveSettings(); render(); toast("Đã chép ngân sách từ " + monthLabel(pk).toLowerCase()); },
+  "trk-copy": () => { const pk = budPrevKey(S.month); if (!pk) return; budSet(S.month, { cats: Object.assign({}, budOf(pk).cats, budOf(S.month).cats) }); saveSettings(); render(); toast("Đã chép hạn mức từ " + monthLabel(pk).toLowerCase()); },
   "trk-edit": el => openTrackAdd(el.dataset.id),
-  "bud-save": () => { const v = parseAmount($("#bud-total").value); S.settings.budgetTotal = v; saveSettings(); render(); toast(v ? "Đã đặt ngân sách " + fmt(v) + "/tháng" : "Đã bỏ ngân sách tháng"); },
+  "bud-save": () => { const v = parseAmount($("#bud-total").value); budSet(S.month, { total: v }); saveSettings(); render(); toast(v ? "Đã đặt ngân sách " + fmt(v) : "Đã bỏ ngân sách tháng"); },
   "bud-fill": el => { $("#bud-total").value = fmtNum(+el.dataset.v); },
   "trk-add": () => openTrackAdd(),
-  "trk-del": el => { const id = el.dataset.id; confirmBox("Bỏ theo dõi " + esc(catName(id)) + "?", "Hạn mức riêng của danh mục này sẽ bị xóa.", "Xóa", () => { delete S.settings.budgets[id]; saveSettings(); render(); }); },
+  "trk-del": el => { const id = el.dataset.id; confirmBox("Bỏ hạn mức " + esc(catName(id)) + "?", "Chỉ bỏ hạn mức của " + monthLabel(S.month).toLowerCase() + ".", "Xóa", () => { const c = Object.assign({}, budOf(S.month).cats); delete c[id]; budSet(S.month, { cats: c }); saveSettings(); render(); }); },
   "scan-w": el => { scanCollect(); SC.form.walletId = el.dataset.v; render(); },
   "scan-date": el => { scanCollect(); SC.form.date = el.dataset.v; render(); },
   "dp-open": el => openDatePicker(el),
@@ -3053,6 +3260,8 @@ const actions = {
   "close-modal": () => closeModal(),
   "fund-new": () => openFundForm(null),
   "open-fund": el => openFundDetail(el.dataset.id),
+  "sum-mode": el => { const v = el.dataset.v; setSumMode(v, sumMode(v) === "total" ? "month" : "total"); render(); },
+  "sum-item": el => { const o = sumOff(), id = el.dataset.id; if (o[id]) delete o[id]; else o[id] = 1; saveSettings(); render(); },
   "fund-dep": el => openFundMoney(el.dataset.id, false),
   "fund-wd": el => openFundMoney(el.dataset.id, true),
   "loan-tab": el => { S.loanTab = el.dataset.v; render(); },
@@ -3064,7 +3273,7 @@ const actions = {
   "del-wallet": el => { const w = walletById(el.dataset.id); if (!w) return; confirmBox("Xóa ví “" + esc(w.name) + "”?", "Ví này chưa có giao dịch nào nên có thể xóa an toàn.", "Xóa ví", () => { S.settings.wallets = S.settings.wallets.filter(x => x.id !== w.id); saveSettings(); render(); }); },
   "cat-style": el => openStylePicker(el.dataset.id),
   "add-cat": el => { S.settings.categories.push({ id: "c-" + newId(), name: "Danh mục mới", type: el.dataset.type, color: nextColor(cats(el.dataset.type)), icon: "dots" }); saveSettings(); render(); const ins = document.querySelectorAll("[data-cname]"); const id = S.settings.categories[S.settings.categories.length - 1].id; const inp = document.getElementById("cn-" + id); if (inp) { inp.focus(); inp.select(); } },
-  "del-cat": el => { const c = catById(el.dataset.id); if (!c) return; confirmBox("Xóa danh mục “" + esc(c.name) + "”?", "Danh mục chưa có giao dịch nào nên có thể xóa an toàn.", "Xóa", () => { S.settings.categories = S.settings.categories.filter(x => x.id !== c.id); delete S.settings.budgets[c.id]; saveSettings(); render(); }); },
+  "del-cat": el => { const c = catById(el.dataset.id); if (!c) return; confirmBox("Xóa danh mục “" + esc(c.name) + "”?", "Danh mục chưa có giao dịch nào nên có thể xóa an toàn.", "Xóa", () => { S.settings.categories = S.settings.categories.filter(x => x.id !== c.id); Object.values(budAll()).forEach(b => { if (b.cats) delete b.cats[c.id]; }); saveSettings(); render(); }); },
   "retry-load": () => { S.loadError = null; render(); startSyncRetry(); },
   "force-signout": async () => { try { await sb.auth.signOut(); } catch (e) {} try { localStorage.removeItem(cacheKey()); } catch (e) {} uid = null; S.auth = "signedout"; S.loadError = null; goLocal(); },
   "auth-tab": el => { S.authTab = el.dataset.v; S.authMsg = ""; render(); },
@@ -3156,7 +3365,7 @@ document.addEventListener("change", e => {
   }
   else if (d.bud) {
     const v = parseAmount(el.value);
-    if (v) S.settings.budgets[d.bud] = v; else delete S.settings.budgets[d.bud];
+    const c = Object.assign({}, budOf(S.month).cats); if (v) c[d.bud] = v; else delete c[d.bud]; budSet(S.month, { cats: c });
     saveSettings(); render();
   } else if (d.wname) {
     const w = walletById(d.wname); const v = el.value.trim();
