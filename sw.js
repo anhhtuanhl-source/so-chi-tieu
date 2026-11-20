@@ -1,5 +1,5 @@
 // Bộ nhớ đệm để website mở được cả khi không có mạng.
-const CACHE = "so-chi-tieu-v11";
+const CACHE = "so-chi-tieu-v12";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
