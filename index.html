@@ -829,6 +829,12 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .up-item:first-child { border-top: 0; }
 @media (max-width: 720px) { [data-key="daily"] .card-h { flex-wrap: wrap; } [data-key="daily"] .al-txt { width: 100%; justify-content: flex-start; text-align: left; flex-wrap: nowrap; align-items: baseline; } [data-key="daily"] .al-txt svg { flex: none; } }
 .al-txt { font-size: 13px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; text-align: right; }
+.cat-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; max-height: 320px; overflow-y: auto; }
+.cat-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font: inherit; font-size: 13.5px; color: var(--ink); cursor: pointer; max-width: 100%; }
+.cat-chip:hover { border-color: var(--accent); }
+.cat-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cat-chip small { font-size: 11px; color: var(--muted); background: var(--surface-2); border-radius: 999px; padding: 0 6px; }
+.cat-chip[hidden] { display: none; }
 </style>
 </head>
 <body>
@@ -1160,7 +1166,7 @@ async function initStore() {
   setInterval(idleCheck, 20000);
 }
 /* Tự đăng xuất sau 15 phút không dùng */
-const IDLE_MS = 15 * 60 * 1000, ACT_KEY = "so-chi-tieu-active", IDLE_MSG = "Sổ đã tự đăng xuất vì 15 phút không dùng. Hãy đăng nhập lại.";
+const IDLE_MS = 15 * 60 * 1000, ACT_KEY = "so-chi-tieu-active", IDLE_MSG = "Đã quá hạn";
 let lastAct = Date.now(), actSaved = 0;
 const lastActStored = () => { try { return +localStorage.getItem(ACT_KEY) || 0; } catch (e) { return 0; } };
 function idleTooLong() { const st = lastActStored(); return st > 0 && Date.now() - st >= IDLE_MS; }
@@ -1416,6 +1422,35 @@ const catIcon = id => catById(id)?.icon || "dots";
 const catBadge = (id, extra) => `<span class="badge cc ${extra || ""}" style="--cc:${catColor(id)}" aria-hidden="true">${iconSvg(catIcon(id))}</span>`;
 
 /* Bảng chọn màu + biểu tượng (dùng cho danh mục) */
+function openCatEditor(catId, isNew) {
+  const c0 = catById(catId); if (!c0) return;
+  const d = { name: c0.name, color: c0.color ?? 0, icon: c0.icon || "dots" };
+  const used = allTx().filter(t => t.catId === catId).length;
+  const draw = () => {
+    openModal(`<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><span class="badge cc" style="--cc:var(--c${d.color})">${iconSvg(d.icon)}</span><h2 style="margin:0">${isNew ? "Danh mục " + (c0.type === "income" ? "thu" : "chi") + " mới" : "Sửa danh mục"}</h2></div>
+      <label for="ce-name">Tên</label><input class="field" id="ce-name" value="${esc(d.name)}" maxlength="40" placeholder="Ví dụ: Cà phê">
+      <label>Màu sắc</label>
+      <div class="pal">${[1, 2, 3, 4, 5, 6, 7, 8, 0].map(n => `<button type="button" class="pal-c" data-pc="${n}" style="--cc:var(--c${n})" aria-pressed="${d.color === n}" aria-label="Màu ${n || "xám"}"></button>`).join("")}</div>
+      <label>Biểu tượng</label>
+      <div class="icgrid">${Object.keys(ICON_SET).map(k => `<button type="button" class="icbtn" data-pi="${k}" aria-pressed="${d.icon === k}" title="${ICON_SET[k][0]}" style="--cc:var(--c${d.color})">${iconSvg(k)}</button>`).join("")}</div>
+      <div class="err" id="ce-err"></div>
+      ${used ? `<p class="hint" style="margin:8px 0 0">Đang có ${used} giao dịch dùng danh mục này nên không xóa được, chỉ đổi tên, màu và biểu tượng.</p>` : ""}
+      <div class="modal-actions">${used || isNew ? "" : `<button class="btn danger" type="button" id="ce-del">Xóa</button>`}<span class="sp"></span><button class="btn" type="button" id="ce-cancel">Hủy</button><button class="btn primary" type="button" id="ce-ok">Lưu</button></div>`);
+    const nm = $("#ce-name"); nm.oninput = () => { d.name = nm.value; };
+    $("#modal").querySelectorAll("[data-pc]").forEach(b => b.onclick = () => { d.color = +b.dataset.pc; draw(); });
+    $("#modal").querySelectorAll("[data-pi]").forEach(b => b.onclick = () => { d.icon = b.dataset.pi; draw(); });
+    $("#ce-cancel").onclick = () => { if (isNew) S.settings.categories = S.settings.categories.filter(x => x.id !== catId); closeModal(); render(); };
+    $("#ce-ok").onclick = () => {
+      const v = d.name.trim(); if (!v) { $("#ce-err").textContent = "Nhập tên danh mục."; return; }
+      if (cats(c0.type).some(x => x.id !== catId && x.name.trim().toLowerCase() === v.toLowerCase())) { $("#ce-err").textContent = "Đã có danh mục tên này."; return; }
+      Object.assign(c0, { name: v, color: d.color, icon: d.icon }); saveSettings(); closeModal(); render(); toast(isNew ? "Đã thêm danh mục " + v : "Đã lưu");
+    };
+    if ($("#ce-del")) $("#ce-del").onclick = () => { closeModal(); actions["del-cat"]({ dataset: { id: catId } }); };
+    nm.addEventListener("keydown", e => { if (e.key === "Enter") $("#ce-ok").click(); });
+  };
+  draw();
+  if (isNew) setTimeout(() => $("#ce-name")?.focus(), 30);
+}
 function openStylePicker(catId) {
   const c = catById(catId); if (!c) return;
   const draw = () => {
@@ -1688,7 +1723,7 @@ function refreshTip() {
   const el = document.querySelector('[data-key="tips"] .sec-body');
   if (el && S.edit !== "tong-quan") el.innerHTML = tipHtml();
 }
-setInterval(() => { if (S.view === "tong-quan" && !prefs().tipsOff && document.visibilityState === "visible") { S.tipIdx = (S.tipIdx || 0) + 1; refreshTip(); } }, 5 * 60 * 1000);
+setInterval(() => { if (S.view === "tong-quan" && !prefs().tipsOff && document.visibilityState === "visible") { S.tipIdx = (S.tipIdx || 0) + 1; refreshTip(); } }, 60 * 1000);
 
 const ACCENTS = [["teal", "Xanh ngọc", "#0f6b5c"],["blue", "Xanh dương", "#1f5fbf"],["violet", "Tím", "#5b3fc4"],["pink", "Hồng", "#b8336a"],["orange", "Cam", "#b45309"],["red", "Đỏ", "#b42323"],["green", "Xanh lá", "#2f7d1f"],["slate", "Xám", "#3d4f5c"]];
 function setLook(kind, v) { const k = kind === "theme" ? "so-chi-tieu-theme" : "so-chi-tieu-acc"; try { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k); } catch (e) {} if (v) document.documentElement.dataset[kind === "theme" ? "theme" : "acc"] = v; else delete document.documentElement.dataset[kind === "theme" ? "theme" : "acc"]; }
@@ -3235,10 +3270,14 @@ function viewSettings() {
     <input class="field r" id="wi-${esc(w.id)}" data-winit="${esc(w.id)}" inputmode="text" value="${fmtNum(w.initial || 0)}" aria-label="Số dư ban đầu">
     <button class="btn sm ghost danger" type="button" data-act="del-wallet" data-id="${esc(w.id)}" ${u.w.has(w.id) ? 'disabled title="Ví đang có giao dịch"' : ""} aria-label="Xóa ví">Xóa</button>
     <div class="hint" style="grid-column:1/-1;margin-top:-2px">Số dư hiện tại: <b class="num">${fmt(bal[w.id] || 0)}</b></div></div>`).join("");
-  const cRows = type => cats(type).map(c => `<div class="set-row cat">
-    <button class="stylebtn" type="button" data-act="cat-style" data-id="${esc(c.id)}" aria-label="Đổi màu và biểu tượng ${esc(c.name)}" title="Đổi màu và biểu tượng">${catBadge(c.id)}</button>
-    <input class="field" id="cn-${esc(c.id)}" data-cname="${esc(c.id)}" value="${esc(c.name)}" aria-label="Tên danh mục">
-    <button class="btn sm ghost danger" type="button" data-act="del-cat" data-id="${esc(c.id)}" ${u.c.has(c.id) ? 'disabled title="Danh mục đang có giao dịch, hãy đổi tên thay vì xóa"' : ""}>Xóa</button></div>`).join("");
+  const ct = S.catTab === "income" ? "income" : "expense", useN = {};
+  allTx().forEach(t => { if (t.catId) useN[t.catId] = (useN[t.catId] || 0) + 1; });
+  const catCard = `<div class="card"><div class="card-h"><h2>Danh mục</h2><button class="btn sm" type="button" data-act="add-cat" data-type="${ct}">+ Thêm</button></div>
+    <div class="seg" style="width:100%;display:grid;grid-template-columns:1fr 1fr;margin-bottom:10px"><button type="button" data-act="cat-tab" data-v="expense" aria-pressed="${ct === "expense"}">Chi (${cats("expense").length})</button><button type="button" data-act="cat-tab" data-v="income" aria-pressed="${ct === "income"}">Thu (${cats("income").length})</button></div>
+    <input class="field" id="cat-q" type="search" placeholder="Tìm danh mục…" autocomplete="off" aria-label="Tìm danh mục">
+    <div class="cat-grid" id="cat-grid">${cats(ct).map(c => `<button type="button" class="cat-chip" data-act="cat-edit" data-id="${esc(c.id)}" data-name="${esc(c.name.toLowerCase())}">${catBadge(c.id, "sm")}<span>${esc(c.name)}</span>${useN[c.id] ? `<small>${useN[c.id]}</small>` : ""}</button>`).join("")}</div>
+    <p class="hint" id="cat-none" style="margin:8px 0 0;display:none">Không thấy danh mục nào. Ấn "+ Thêm" để tạo mới.</p>
+    <p class="hint" style="margin:8px 0 0">Ấn vào danh mục để đổi tên, màu, biểu tượng hoặc xóa. Số nhỏ bên cạnh là số giao dịch đang dùng.</p></div>`;
   return topbar("Cài đặt", false) + `<div class="grid two">
     <div class="stack">${accountCard()}<div class="card"><div class="card-h"><h2>Ví và tài khoản</h2><button class="btn sm" type="button" data-act="add-wallet">+ Thêm ví</button></div>
       <p class="hint" style="margin:-4px 0 10px">Nhập số dư ban đầu của từng ví (số tiền đang có khi bắt đầu dùng sổ). Thẻ tín dụng đang nợ thì gõ dấu trừ phía trước, ví dụ -2.000.000.</p>
@@ -3249,7 +3288,7 @@ function viewSettings() {
         <span class="set-lbl">Màu chủ đạo</span>
         <div class="acc-row">${ACCENTS.map(([k, n, c]) => `<button type="button" class="acc-sw" style="background:${c}" data-act="look-acc" data-v="${k}" aria-pressed="${(document.documentElement.dataset.acc || "teal") === k}" aria-label="${n}" title="${n}"></button>`).join("")}</div>
         <p class="hint" style="margin:6px 0 12px">Chế độ màu và màu chủ đạo được lưu riêng trên từng thiết bị.</p>
-        <label class="switch-row"><span>Hiện gợi ý quản lý chi tiêu ở Tổng quan<small>Đổi gợi ý mỗi 5 phút và mỗi lần mở sổ</small></span><input type="checkbox" data-act="tips-toggle" ${prefs().tipsOff ? "" : "checked"}></label>
+        <label class="switch-row"><span>Hiện gợi ý quản lý chi tiêu ở Tổng quan<small>Tự đổi gợi ý mỗi 1 phút và mỗi lần mở sổ</small></span><input type="checkbox" data-act="tips-toggle" ${prefs().tipsOff ? "" : "checked"}></label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${(prefs().tipsDismissed || []).length ? `<button class="btn sm" type="button" data-act="tips-reset">Hiện lại ${(prefs().tipsDismissed || []).length} gợi ý đã ẩn</button>` : ""}<button class="btn sm" type="button" data-act="ov-reset">Khôi phục thứ tự mặc định</button></div></div>
       <div class="card"><div class="card-h"><h2>Sao lưu và chuyển thiết bị</h2></div>
       <p class="hint" style="margin:-4px 0 10px">${S.mode === "sync" ? "Dữ liệu đã được lưu trên tài khoản. Bạn vẫn có thể tải thêm một bản sao lưu để cất giữ riêng." : "Dữ liệu chỉ lưu trên trình duyệt của thiết bị này. Hãy tải file sao lưu định kỳ. Để dùng trên thiết bị khác, mở website ở đó rồi chọn Khôi phục từ file."}</p>
@@ -3257,8 +3296,7 @@ function viewSettings() {
       <p class="hint" style="margin:8px 0 12px">${S.lastBackup ? "Sao lưu gần nhất: " + fmtDate(isoDay(S.lastBackup)) + " " + new Date(S.lastBackup).toTimeString().slice(0, 5) : "Chưa sao lưu lần nào."}</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" data-act="csv-file">Tải file Excel (CSV)</button><button class="btn" type="button" data-act="export">Sao chép CSV</button></div><textarea id="csv-out" class="field" style="display:none;height:120px;margin-top:10px;padding:8px;font-size:12px" readonly aria-label="Dữ liệu CSV"></textarea>
 </div></div>
-    <div class="stack"><div class="card"><div class="card-h"><h2>Danh mục chi</h2><button class="btn sm" type="button" data-act="add-cat" data-type="expense">+ Thêm</button></div>${cRows("expense")}</div>
-      <div class="card"><div class="card-h"><h2>Danh mục thu</h2><button class="btn sm" type="button" data-act="add-cat" data-type="income">+ Thêm</button></div>${cRows("income")}</div></div></div>`;
+    <div class="stack">${catCard}</div></div>`;
 }
 function parseSigned(raw) { const s = String(raw).trim(); const neg = /^[-−]/.test(s); const v = parseAmount(s.replace(/^[-−]/, "")); return neg ? -v : v; }
 
@@ -3279,6 +3317,7 @@ function render() {
   runRecurring();
   const a = document.activeElement, aid = a && a.id && main.contains(a) ? a.id : null;
   const sel = aid && typeof a.selectionStart === "number" ? [a.selectionStart, a.selectionEnd] : null;
+  const aval = aid && "value" in a ? a.value : null; // giữ nguyên chữ đang gõ nếu sổ vẽ lại giữa chừng
   let banner = "";
   const hasData = Object.keys(S.months).length > 0;
   const stale = !S.lastBackup || Date.now() - S.lastBackup > 30 * 864e5;
@@ -3295,7 +3334,7 @@ function render() {
   const ms = document.getElementById("mstrip");
   if (ms) { const sel = ms.querySelector('[aria-pressed="true"]') || ms.lastElementChild; if (sel) ms.scrollLeft = sel.offsetLeft - ms.clientWidth / 2 + sel.clientWidth / 2; }
   if (S.edit && S.edit === S.view) makeSortable(document.getElementById("sec-grid"), keys => { setPageOrder(S.view, keys); saveSettings(); });
-  if (aid) { const el = document.getElementById(aid); if (el) { el.focus(); if (sel) try { el.setSelectionRange(sel[0], sel[1]); } catch (e) {} } }
+  if (aid) { const el = document.getElementById(aid); if (el) { if (aval !== null && "value" in el && el.type !== "hidden") el.value = aval; el.focus(); if (sel) try { el.setSelectionRange(sel[0], sel[1]); } catch (e) {} } }
   fitNums();
 }
 /* Số đầy đủ (1.000.000) có thể dài: tự thu nhỏ chữ để vừa một dòng thay vì xuống dòng */
@@ -3522,7 +3561,9 @@ const actions = {
   "add-wallet": () => { S.settings.wallets.push({ id: "w-" + newId(), name: "Ví mới", initial: 0 }); saveSettings(); render(); const ins = document.querySelectorAll("[data-wname]"); const last = ins[ins.length - 1]; if (last) { last.focus(); last.select(); } },
   "del-wallet": el => { const w = walletById(el.dataset.id); if (!w) return; confirmBox("Xóa ví “" + esc(w.name) + "”?", "Ví này chưa có giao dịch nào nên có thể xóa an toàn.", "Xóa ví", () => { S.settings.wallets = S.settings.wallets.filter(x => x.id !== w.id); saveSettings(); render(); }); },
   "cat-style": el => openStylePicker(el.dataset.id),
-  "add-cat": el => { S.settings.categories.push({ id: "c-" + newId(), name: "Danh mục mới", type: el.dataset.type, color: nextColor(cats(el.dataset.type)), icon: "dots" }); saveSettings(); render(); const ins = document.querySelectorAll("[data-cname]"); const id = S.settings.categories[S.settings.categories.length - 1].id; const inp = document.getElementById("cn-" + id); if (inp) { inp.focus(); inp.select(); } },
+  "add-cat": el => { const c = { id: "c-" + newId(), name: "", type: el.dataset.type, color: nextColor(cats(el.dataset.type)), icon: "dots" }; S.settings.categories.push(c); openCatEditor(c.id, true); },
+  "cat-edit": el => openCatEditor(el.dataset.id),
+  "cat-tab": el => { S.catTab = el.dataset.v; render(); },
   "del-cat": el => { const c = catById(el.dataset.id); if (!c) return; confirmBox("Xóa danh mục “" + esc(c.name) + "”?", "Danh mục chưa có giao dịch nào nên có thể xóa an toàn.", "Xóa", () => { S.settings.categories = S.settings.categories.filter(x => x.id !== c.id); Object.values(budAll()).forEach(b => { if (b.cats) delete b.cats[c.id]; }); saveSettings(); render(); }); },
   "retry-load": () => { S.loadError = null; render(); startSyncRetry(); },
   "force-signout": async () => { try { await sb.auth.signOut(); } catch (e) {} try { localStorage.removeItem(cacheKey()); } catch (e) {} uid = null; S.auth = "signedout"; S.loadError = null; goLocal(); },
@@ -3600,8 +3641,15 @@ document.addEventListener("paste", e => {
 });
 document.addEventListener("input", e => {
   if (e.target.id === "sc-amt" || e.target.id === "bud-total") formatAmountInput(e.target);
-  if (e.target.matches && e.target.matches("[data-winit]")) formatSignedInput(e.target);
+  if (e.target.matches && e.target.matches("[data-winit]")) {
+    formatSignedInput(e.target);
+    // Lưu ngay khi gõ (iPhone không phải lúc nào cũng báo "change" khi rời ô)
+    const inp = e.target; clearTimeout(inp._t);
+    inp._t = setTimeout(() => { const w = walletById(inp.dataset.winit); if (!w) return; const v = parseSigned(inp.value); if (v !== w.initial) { w.initial = v; saveSettings(); const h = inp.closest(".set-row")?.querySelector(".hint b"); if (h) h.textContent = fmt(walletBalances()[w.id] || 0); } }, 600);
+  }
+  if (e.target.matches && e.target.matches("[data-wname]")) { const inp = e.target; clearTimeout(inp._t); inp._t = setTimeout(() => { const w = walletById(inp.dataset.wname), v = inp.value.trim(); if (w && v && v !== w.name) { w.name = v; saveSettings(); } }, 600); }
   if (e.target.matches && e.target.matches("[data-bud]")) formatAmountInput(e.target);
+  if (e.target.id === "cat-q") { const q = e.target.value.trim().toLowerCase(); let n = 0; document.querySelectorAll("#cat-grid .cat-chip").forEach(b => { const ok = !q || b.dataset.name.includes(q); b.hidden = !ok; if (ok) n++; }); const no = $("#cat-none"); if (no) no.style.display = n ? "none" : ""; }
   if (e.target.id === "f-q") { S.f.q = e.target.value; $("#tx-list").innerHTML = txListHtml(); }
 });
 document.addEventListener("change", e => {
