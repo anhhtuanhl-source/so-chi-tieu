@@ -1517,14 +1517,14 @@ const catBadge = (id, extra) => `<span class="badge cc ${extra || ""}" style="--
 function openCatEditor(catId, isNew) {
   const c0 = catById(catId); if (!c0) return;
   const d = { name: c0.name, color: c0.color ?? 0, icon: c0.icon || "dots" };
-  const used = allTx().filter(t => t.catId === catId).length;
+  const used = allTx().filter(t => t.catId === catId).length + recs().filter(r => r.catId === catId).length;
   const draw = () => {
     openModal(`<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><span class="badge cc" style="--cc:${icCol(d.icon)}">${iconSvg(d.icon)}</span><h2 style="margin:0">${isNew ? "Danh mục " + (c0.type === "income" ? "thu" : "chi") + " mới" : "Sửa danh mục"}</h2></div>
       <label for="ce-name">Tên</label><input class="field" id="ce-name" value="${esc(d.name)}" maxlength="40" placeholder="Ví dụ: Cà phê">
       <label>Biểu tượng <span class="hint" style="font-weight:400">(mỗi biểu tượng có màu riêng)</span></label>
       <div class="ic-scroll">${iconGroupsHtml("pi", d.icon)}</div>
       <div class="err" id="ce-err"></div>
-      ${used ? `<p class="hint" style="margin:8px 0 0">Đang có ${used} giao dịch dùng danh mục này nên không xóa được, chỉ đổi tên, màu và biểu tượng.</p>` : ""}
+      ${used ? `<p class="hint" style="margin:8px 0 0">Đang có ${used} giao dịch dùng danh mục này nên không xóa được, chỉ đổi tên và biểu tượng.</p>` : ""}
       <div class="modal-actions">${used || isNew ? "" : `<button class="btn danger" type="button" id="ce-del">Xóa</button>`}<span class="sp"></span><button class="btn" type="button" id="ce-cancel">Hủy</button><button class="btn primary" type="button" id="ce-ok">Lưu</button></div>`);
     const nm = $("#ce-name"); nm.oninput = () => { d.name = nm.value; };
     $("#modal").querySelectorAll("[data-pc]").forEach(b => b.onclick = () => { d.color = +b.dataset.pc; draw(); });
@@ -3358,14 +3358,15 @@ function viewSettings() {
     <input class="field r" id="wi-${esc(w.id)}" data-winit="${esc(w.id)}" inputmode="text" value="${fmtNum(w.initial || 0)}" aria-label="Số dư ban đầu">
     <button class="btn sm ghost danger" type="button" data-act="del-wallet" data-id="${esc(w.id)}" ${u.w.has(w.id) ? 'disabled title="Ví đang có giao dịch"' : ""} aria-label="Xóa ví">Xóa</button>
     <div class="hint" style="grid-column:1/-1;margin-top:-2px">Số dư hiện tại: <b class="num">${fmt(bal[w.id] || 0)}</b></div></div>`).join("");
-  const ct = S.catTab === "income" ? "income" : "expense", useN = {};
-  allTx().forEach(t => { if (t.catId) useN[t.catId] = (useN[t.catId] || 0) + 1; });
-  const catCard = `<div class="card"><div class="card-h"><h2>Danh mục</h2><button class="btn sm" type="button" data-act="add-cat" data-type="${ct}">+ Thêm</button></div>
-    <div class="seg" style="width:100%;display:grid;grid-template-columns:1fr 1fr;margin-bottom:10px"><button type="button" data-act="cat-tab" data-v="expense" aria-pressed="${ct === "expense"}">Chi (${cats("expense").length})</button><button type="button" data-act="cat-tab" data-v="income" aria-pressed="${ct === "income"}">Thu (${cats("income").length})</button></div>
-    <input class="field" id="cat-q" type="search" placeholder="Tìm danh mục…" autocomplete="off" aria-label="Tìm danh mục">
-    <div class="cat-grid" id="cat-grid">${cats(ct).map(c => `<button type="button" class="cat-chip" data-act="cat-edit" data-id="${esc(c.id)}" data-name="${esc(c.name.toLowerCase())}">${catBadge(c.id, "sm")}<span>${esc(c.name)}</span>${useN[c.id] ? `<small>${useN[c.id]}</small>` : ""}</button>`).join("")}</div>
-    <p class="hint" id="cat-none" style="margin:8px 0 0;display:none">Không thấy danh mục nào. Ấn "+ Thêm" để tạo mới.</p>
-    <p class="hint" style="margin:8px 0 0">Ấn vào danh mục để đổi tên, màu, biểu tượng hoặc xóa. Số nhỏ bên cạnh là số giao dịch đang dùng.</p></div>`;
+  // Danh mục chọn ngay khi thêm giao dịch; ở đây chỉ còn danh mục đặt tên riêng và dọn danh mục không dùng
+  const useN = {}; allTx().forEach(t => { if (t.catId) useN[t.catId] = (useN[t.catId] || 0) + 1 }); recs().forEach(r => { if (r.catId) useN[r.catId] = (useN[r.catId] || 0) + 1; });
+  const plain = new Set([...defaults().categories.map(c => c.name.toLowerCase()), ...Object.values(ICON_SET).map(v => v[0].toLowerCase())]);
+  const custom = S.settings.categories.filter(c => !plain.has(c.name.trim().toLowerCase()));
+  const unused = S.settings.categories.filter(c => !useN[c.id] && !Object.values(budAll()).some(b => b.cats && b.cats[c.id]));
+  const catCard = `<div class="card"><div class="card-h"><h2>Danh mục</h2></div>
+    <p class="hint" style="margin:-4px 0 ${custom.length || unused.length ? 10 : 0}px">Chọn danh mục ngay khi thêm giao dịch, từ lưới biểu tượng. Chọn biểu tượng nào thì danh mục đó tự được tạo.</p>
+    ${custom.length ? `<div class="set-lbl" style="margin-top:0">Tên riêng bạn đã đặt</div><div class="cat-grid">${custom.map(c => `<button type="button" class="cat-chip" data-act="cat-edit" data-id="${esc(c.id)}" title="Sửa">${catBadge(c.id, "sm")}<span>${esc(c.name)}</span><small>${c.type === "income" ? "Thu" : "Chi"}</small></button>`).join("")}</div>` : ""}
+    ${unused.length ? `<button class="btn sm ghost" type="button" data-act="cat-clean" style="margin-top:10px">Dọn ${unused.length} danh mục chưa dùng</button>` : ""}</div>`;
   return topbar("Cài đặt", false) + `<div class="grid two">
     <div class="stack">${accountCard()}<div class="card"><div class="card-h"><h2>Ví và tài khoản</h2><button class="btn sm" type="button" data-act="add-wallet">+ Thêm ví</button></div>
       <p class="hint" style="margin:-4px 0 10px">Nhập số dư ban đầu của từng ví (số tiền đang có khi bắt đầu dùng sổ). Thẻ tín dụng đang nợ thì gõ dấu trừ phía trước, ví dụ -2.000.000.</p>
@@ -3679,6 +3680,7 @@ const actions = {
   "cat-style": el => openStylePicker(el.dataset.id),
   "add-cat": el => { const c = { id: "c-" + newId(), name: "", type: el.dataset.type, color: nextColor(cats(el.dataset.type)), icon: "dots" }; S.settings.categories.push(c); openCatEditor(c.id, true); },
   "cat-edit": el => openCatEditor(el.dataset.id),
+  "cat-clean": () => { const useN = new Set(allTx().map(t => t.catId)); recs().forEach(r => useN.add(r.catId)); const un = S.settings.categories.filter(c => !useN.has(c.id) && !Object.values(budAll()).some(b => b.cats && b.cats[c.id])); if (!un.length) return; confirmBox(`Dọn ${un.length} danh mục chưa dùng?`, "Chỉ xóa những danh mục chưa có giao dịch, lịch lặp hay hạn mức nào: " + un.map(c => esc(c.name)).join(", ") + ". Cần lại thì chọn biểu tượng khi thêm giao dịch là có ngay.", "Dọn", () => { const ids = new Set(un.map(c => c.id)); S.settings.categories = S.settings.categories.filter(c => !ids.has(c.id)); saveSettings(); render(); toast("Đã dọn " + un.length + " danh mục"); }); },
   "cat-tab": el => { S.catTab = el.dataset.v; render(); },
   "del-cat": el => { const c = catById(el.dataset.id); if (!c) return; confirmBox("Xóa danh mục “" + esc(c.name) + "”?", "Danh mục chưa có giao dịch nào nên có thể xóa an toàn.", "Xóa", () => { S.settings.categories = S.settings.categories.filter(x => x.id !== c.id); Object.values(budAll()).forEach(b => { if (b.cats) delete b.cats[c.id]; }); saveSettings(); render(); }); },
   "retry-load": () => { S.loadError = null; render(); startSyncRetry(); },
